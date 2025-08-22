@@ -18,6 +18,7 @@ from sklearn.cluster import HDBSCAN  # type: ignore
 from sklearn.metrics import silhouette_score
 from datetime import datetime
 
+
 def date_time_string():
     current_datetime = datetime.now()
     formatted_datetime = current_datetime.strftime("%Y%m%d-%H%M%S")
@@ -162,17 +163,17 @@ def load_domain_mapping(
     self, file_path: str = "data/domains/reorganized_domain_tiny_ids.csv"
 ) -> pd.DataFrame:
     """Load and deduplicate domain mapping data."""
-    config = self.config['CDEAnalysis']
+    config = self.config["CDEAnalysis"]
     print(config)
-    if config['domains']:
-        file_path = config['domains']
+    if config["domains"]:
+        file_path = config["domains"]
         print(f"This is the file path from the config array: {file_path}\n")
     print(f"Loading domain mapping from {file_path} ...")
     logger.info(f"Loading domain mapping from {file_path}")
     try:
-        if 'json' in file_path:
+        if "json" in file_path:
             domain_df = pd.read_json(file_path)
-        elif 'csv' in file_path:
+        elif "csv" in file_path:
             domain_df = pd.read_csv(file_path)
         initial_count = len(domain_df)
         duplicate_mask = domain_df.duplicated(subset=["tinyid"], keep="first")
@@ -249,18 +250,22 @@ def setup_logging():
 
 def load_embedding_models(self) -> Dict:
     modeldata = {}
-    config = self.config['CDEAnalysis']
-    for model in (config["models"] if isinstance(config["models"], list) else [config["models"]]):
-        for text in (config["embedtext"] if isinstance(config["embedtext"], list) else [config["embedtext"]]):
-            print(f"embedtext: {text}")
+    config = self.config["CDEAnalysis"]
+    for model in (
+        config["models"] if isinstance(config["models"], list) else [config["models"]]
+    ):
+        for text in (
+            config["embedtext"]
+            if isinstance(config["embedtext"], list)
+            else [config["embedtext"]]
+        ):
             embed = load_embedding_model(self, modelname=model, embedding=text)
-            print(embed.shape) # type: ignore
             if embed is not None:
                 modeldata[model] = embed
     print(f"Finished loading embedding models. Keys are: {modeldata.keys()}")
     self.embedding_models = modeldata
     return modeldata
-    
+
 
 def load_embedding_model(
     self, modelname: str, embedding: str
@@ -269,16 +274,16 @@ def load_embedding_model(
     Load precomputed embeddings. Since these are large matrixes, load one at a time and process
     to the point of subsetting
     """
-    config = self.config['CDEAnalysis']
-    formatstr =  config['template']
+    config = self.config["CDEAnalysis"]
+    formatstr = config["template"]
     # print(f"In the function load_embedding_model. format string is: {formatstr}")
     filepath = formatstr.format(embedtext=embedding, model=modelname)
     try:
-        with open(config['selectvec'], 'r') as f:
+        with open(config["selectvec"], "r") as f:
             selectvec = json.load(f)
     except FileNotFoundError:
         print("Error: {config['selectvec']} not found.")
-    
+
     # read in precomputed, but retain only the embeddings for the analysis
     try:
         if os.path.exists(filepath):  # type: ignore
@@ -286,7 +291,7 @@ def load_embedding_model(
             data_array = data_array[selectvec,]
             return data_array
         # else:
-        #     return None    
+        #     return None
     except FileNotFoundError:
         # Handle the case where the file does not exist
         print(f"Error: The file '{filepath}' was not found.")
@@ -355,6 +360,8 @@ def config_to_dict(configuration) -> Dict:
                 config_dict[section][option] = configuration.getboolean(section, option)
             elif value.isdigit():
                 config_dict[section][option] = configuration.getint(section, option)
+            elif value.lower() in ("inf", "infinity", "-inf"):
+                value = float(value)
             elif _is_float_string(value):
                 # print(f"Match for section: {section}, option: {option}, value: {value}\n")
                 config_dict[section][option] = configuration.getfloat(section, option)
@@ -373,3 +380,39 @@ def config_to_dict(configuration) -> Dict:
 logger = setup_logging()
 
 
+def auto_cast(val):
+    if val is None or val == "":
+        return None
+    if isinstance(val, str):
+        v = val.strip()
+
+        # --- Try literal_eval for tuple/list/dict/None ---
+        if (v.startswith("(") and v.endswith(")")) or (
+            v.startswith("[") and v.endswith("]")
+        ):
+            try:
+                return ast.literal_eval(v)
+            except Exception:
+                pass  # fall back if it isn’t valid Python literal
+
+        # --- booleans ---
+        if v.lower() in ("true", "false"):
+            return v.lower() == "true"
+
+        # --- infinity ---
+        if v.lower() in ("inf", "infinity", "-inf"):
+            return float(v)
+
+        # --- numbers ---
+        try:
+            return int(v)
+        except ValueError:
+            pass
+        try:
+            return float(v)
+        except ValueError:
+            pass
+
+        # --- fallback string ---
+        return v
+    return val

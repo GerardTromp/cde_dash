@@ -17,18 +17,16 @@ def create_dash_app(self) -> dash.Dash:
     model_options = []
     for model in models:
         print(model)
-        model_options.append({'label': model, "value": model})
-    value_option = model_options[0]['value']
+        model_options.append({"label": model, "value": model})
+    value_option = model_options[0]["value"]
     app.layout = dbc.Container(
         [
+            # fmt: off
             dbc.Row(
                 [
                     dbc.Col(
                         [
-                            html.H1(
-                                "Interactive CDE Clustering Analysis",
-                                className="text-center mb-4",
-                            ),
+                            html.H1( "Interactive CDE Clustering Analysis", className="text-center mb-4",),
                             html.Hr(),
                         ]
                     )
@@ -43,26 +41,8 @@ def create_dash_app(self) -> dash.Dash:
                                     dbc.CardHeader("Model Selection"),
                                     dbc.CardBody(
                                         [
-                                            dbc.RadioItems(
-                                                id="model-selector",
-                                                # options=[
-                                                #     {
-                                                #         "label": "SAPBERT",
-                                                #         "value": "SAPBERT",
-                                                #     },
-                                                #     {
-                                                #         "label": "MedCPT",
-                                                #         "value": "MedCPT",
-                                                #     },
-                                                # ],
-                                                options = model_options,
-                                                # value="SAPBERT",
-                                                value =  value_option,
-                                                inline=True,
-                                            ),
-                                            html.Div(
-                                                id="model-status", className="mt-2"
-                                            ),
+                                            dbc.RadioItems( id="model-selector", options=model_options, value=value_option, inline=True,),
+                                            html.Div( id="model-status", className="mt-2"),
                                         ]
                                     ),
                                 ]
@@ -86,13 +66,7 @@ def create_dash_app(self) -> dash.Dash:
                                             dcc.Graph(
                                                 id="clustering-plot",
                                                 style={"height": "700px"},
-                                                config={
-                                                    "displayModeBar": True,
-                                                    "modeBarButtonsToAdd": [
-                                                        "select2d",
-                                                        "lasso2d",
-                                                        "resetScale2d",
-                                                    ],
+                                                config={ "displayModeBar": True, "modeBarButtonsToAdd": [ "select2d", "lasso2d", "resetScale2d", ],
                                                     "displaylogo": False,
                                                 },
                                             )
@@ -118,13 +92,8 @@ def create_dash_app(self) -> dash.Dash:
                                                 [
                                                     dbc.Col(
                                                         [
-                                                            html.P(
-                                                                "Select data points using lasso or box selection tools above, then export:"
-                                                            ),
-                                                            html.Div(
-                                                                id="selection-info",
-                                                                className="mb-3",
-                                                            ),
+                                                            html.P( "Select data points using lasso or box selection tools above, then export:"),
+                                                            html.Div( id="selection-info", className="mb-3",),
                                                         ]
                                                     )
                                                 ]
@@ -133,23 +102,9 @@ def create_dash_app(self) -> dash.Dash:
                                                 [
                                                     dbc.Col(
                                                         [
-                                                            dbc.Button(
-                                                                "Export to JSON",
-                                                                id="export-json-btn",
-                                                                color="primary",
-                                                                className="me-2",
-                                                            ),
-                                                            dbc.Button(
-                                                                "Export to CSV",
-                                                                id="export-csv-btn",
-                                                                color="success",
-                                                                className="me-2",
-                                                            ),
-                                                            dbc.Button(
-                                                                "Copy to Clipboard",
-                                                                id="copy-clipboard-btn",
-                                                                color="info",
-                                                            ),
+                                                            dbc.Button( "Export to JSON", id="export-json-btn", color="primary", className="me-2",),
+                                                            dbc.Button( "Export to CSV", id="export-csv-btn", color="success", className="me-2",),
+                                                            dbc.Button( "Copy to Clipboard", id="copy-clipboard-btn", color="info",),
                                                         ]
                                                     )
                                                 ]
@@ -158,9 +113,7 @@ def create_dash_app(self) -> dash.Dash:
                                                 [
                                                     dbc.Col(
                                                         [
-                                                            html.Div(
-                                                                id="export-status",
-                                                                className="mt-3",
+                                                            html.Div( id="export-status", className="mt-3",
                                                             )
                                                         ]
                                                     )
@@ -174,6 +127,7 @@ def create_dash_app(self) -> dash.Dash:
                     )
                 ]
             ),
+            # fmt: on
             html.Div(id="selected-data-store", style={"display": "none"}),
             html.Div(id="current-model-store", style={"display": "none"}),
         ],

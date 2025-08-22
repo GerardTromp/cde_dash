@@ -11,29 +11,55 @@ from sklearn.metrics import silhouette_score
 from utils.functions import logger, date_time_string
 
 
-
-def apply_dimensionality_reduction(self, embeddings: np.ndarray, method: str = 'tsne') -> np.ndarray:
+def apply_dimensionality_reduction(
+    self, embeddings: np.ndarray, method: str = "tsne"
+) -> np.ndarray:
     """Apply t-SNE or UMAP for visualization"""
     print(f"Applying {method.upper()}...")
     logger.info(f"Applying {method} reduction")
     start_time = time.time()
     scaler = StandardScaler()
     embeddings_scaled = scaler.fit_transform(embeddings)
+    # print(f"{self.analysis_params}\n")
+    # tsne_params = self.analysis_params["TSNE"]
+    # umap_params = self.analysis_params["UMAP"]
     tsne_params = self.tsne_params
-    # print(tsne_params)
-    tsne_local = {'n_components': 2, 'random_state': 42, 'perplexity': min(30, len(embeddings) // 4), 'metric': 'cosine', 'method': 'exact'}
+    umap_params = self.umap_params
+    # print(f"modified TSNE params {tsne_params}\n")
+    # print(f"modified UMAP params {umap_params}\n")
+    ####
+    # Move the parameter update out of this function so that the dash app can dynamically update the dictionary
+    tsne_local = {
+        "n_components": 2,
+        "random_state": 42,
+        "perplexity": min(30, len(embeddings) // 4),
+        "metric": "cosine",
+        "method": "exact",
+    }
     tsne_params.update(tsne_local)
-    if method == 'tsne':
+    umap_local = {
+        "n_components": 2,
+        "random_state": 42,
+        "n_neighbors": min(15, len(embeddings) // 3),
+        "min_dist": 0.1,
+        "metric": "cosine",
+    }
+    umap_params.update(umap_local)
+    if method == "tsne":
         # reducer = TSNE(n_components=2, random_state=42, perplexity=min(30, len(embeddings) // 4), metric='cosine', method='exact')
         reducer = TSNE(**tsne_params)
-    elif method == 'umap':
-        reducer = umap.UMAP(n_components=2, random_state=42, n_neighbors=min(15, len(embeddings) // 3), min_dist=0.1, metric='cosine')
+    elif method == "umap":
+        # reducer = umap.UMAP(n_components=2, random_state=42, n_neighbors=min(15, len(embeddings) // 3), min_dist=0.1, metric='cosine')
+        reducer = umap.UMAP(**umap_params)
     else:
         raise ValueError(f"Unknown method: {method}")
     reduced_embeddings = reducer.fit_transform(embeddings_scaled)
-    print(f"Completed {method.upper()} in {time.time() - start_time:.2f} seconds, shape: {reduced_embeddings.shape}")
+    print(
+        f"Completed {method.upper()} in {time.time() - start_time:.2f} seconds, shape: {reduced_embeddings.shape}"
+    )
     logger.info(f"{method} reduction shape: {reduced_embeddings.shape}")
     return reduced_embeddings
+
 
 def apply_clustering(self, embeddings: np.ndarray) -> Tuple[np.ndarray, HDBSCAN]:
     """HDBSCAN clustering"""
@@ -44,30 +70,43 @@ def apply_clustering(self, embeddings: np.ndarray) -> Tuple[np.ndarray, HDBSCAN]
     cluster_labels = clusterer.fit_predict(embeddings)
     n_clusters = len(set(cluster_labels)) - (1 if -1 in cluster_labels else 0)
     n_noise = list(cluster_labels).count(-1)
-    print(f"Completed clustering: {n_clusters} clusters, {n_noise} noise points in {time.time() - start_time:.2f} seconds")
-    logger.info(f"Clusters: {n_clusters}, Noise: {n_noise}, Coverage: {(len(cluster_labels) - n_noise) / len(cluster_labels):.4f}")
+    print(
+        f"Completed clustering: {n_clusters} clusters, {n_noise} noise points in {time.time() - start_time:.2f} seconds"
+    )
+    logger.info(
+        f"Clusters: {n_clusters}, Noise: {n_noise}, Coverage: {(len(cluster_labels) - n_noise) / len(cluster_labels):.4f}"
+    )
     return cluster_labels, clusterer
 
-def evaluate_clustering(self, embeddings: np.ndarray, cluster_labels: np.ndarray) -> Dict[str, float]:
+
+def evaluate_clustering(
+    self, embeddings: np.ndarray, cluster_labels: np.ndarray
+) -> Dict[str, float]:
     """Evaluate clustering quality"""
     valid_mask = cluster_labels != -1
     n_total = len(cluster_labels)
     n_clustered = np.sum(valid_mask)
     coverage = n_clustered / n_total
     if not np.any(valid_mask) or len(set(cluster_labels[valid_mask])) < 2:
-        return {'silhouette_score': 0.0, 'coverage': coverage, 'n_clusters': 0, 'n_noise': n_total - n_clustered, 'avg_cluster_size': 0.0}
+        return {
+            "silhouette_score": 0.0,
+            "coverage": coverage,
+            "n_clusters": 0,
+            "n_noise": n_total - n_clustered,
+            "avg_cluster_size": 0.0,
+        }
     valid_embeddings = embeddings[valid_mask]
     valid_labels = cluster_labels[valid_mask]
     silhouette = silhouette_score(valid_embeddings, valid_labels)
     cluster_sizes = np.bincount(valid_labels)
     return {
-        'silhouette_score': silhouette, # type: ignore
-        'coverage': coverage,
-        'n_clusters': len(set(valid_labels)),
-        'n_noise': n_total - n_clustered,
-        'avg_cluster_size': cluster_sizes.mean()
+        "silhouette_score": silhouette,  # type: ignore
+        "coverage": coverage,
+        "n_clusters": len(set(valid_labels)),
+        "n_noise": n_total - n_clustered,
+        "avg_cluster_size": cluster_sizes.mean(),
     }
-    
+
 
 ##################################
 # This should be generalized to permit any model to be run
@@ -99,7 +138,7 @@ def run_analysis(self, model_name: str = "all-MiniLM-L6-v2") -> Dict[str, Any]:
 
     texts = self.filtered_cdes["combined_text"].tolist()
     # embeddings = self.compute_embeddings(model_name, texts)
-    embeddings =  self.embedding_models[model_name]
+    embeddings = self.embedding_models[model_name]
     visualization_methods = ["tsne", "umap"]
     visualization_embeddings = {}
     clustering_results = {}
