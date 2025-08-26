@@ -84,23 +84,23 @@ def param_inputs(params: dict, algo_name: str):
     return dbc.Card([dbc.CardHeader(algo_name), dbc.CardBody(rows)], className="mb-3")
 
 
-# --- Layout ---
-app.layout = dbc.Container(
-    [
-        html.H2("Parameter Configuration"),
-        dcc.Dropdown(
-            id="algo-selector",
-            options=[{"label": k, "value": k} for k in param_sets.keys()],
-            value=["UMAP"],
-            multi=True,
-        ),
-        html.Div(id="param-ui"),
-        html.Hr(),
-        dbc.Button("Show Current Params", id="show-btn", className="mb-3"),
-        html.Pre(id="debug-output"),
-    ],
-    fluid=True,
-)
+# # --- Layout ---
+# app.layout = dbc.Container(
+#     [
+#         html.H2("Parameter Configuration"),
+#         dcc.Dropdown(
+#             id="algo-selector",
+#             options=[{"label": k, "value": k} for k in param_sets.keys()],
+#             value=["UMAP"],
+#             multi=True,
+#         ),
+#         html.Div(id="param-ui"),
+#         html.Hr(),
+#         dbc.Button("Show Current Params", id="show-btn", className="mb-3"),
+#         html.Pre(id="debug-output"),
+#     ],
+#     fluid=True,
+# )
 
 
 # # --- Callback: render parameter UIs ---

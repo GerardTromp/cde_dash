@@ -145,9 +145,9 @@ def main():
     print("Setting up interactive callbacks...")
     analyzer.setup_callbacks()
     print("\nInteractive Clustering Analysis Ready")
-    # print("Open browser to: http://127.0.0.1:8050")
+    # print("Open browser to: http://127.0.0.1:8051")
     try:
-        app.run(debug=False, host="127.0.0.1", port=8050)
+        app.run(debug=False, host="127.0.0.1", port=8051)
     except KeyboardInterrupt:
         print("Session ended by user")
     except Exception as e:

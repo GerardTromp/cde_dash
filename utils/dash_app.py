@@ -269,14 +269,14 @@ def setup_callbacks(self):
     )
     # --- Callback: render parameter UIs ---
     @self.app.callback(Output("param-ui", "children"), Input("algo-selector", "value"))
-    def update_params(algos):
-        if not algos:
-            return []
-        return [param_inputs(param_sets[a], a) for a in algos]
+    # def update_params(algos):
+    #     if not algos:
+    #         return []
+    #     return [param_inputs(param_sets[a], a) for a in algos]
 
     # --- Callback: update param_sets on any input change ---
     @self.app.callback(
-        self,
+        # self,
         Output("debug-output", "children"),
         Input({"type": "param-input", "algo": dash.ALL, "param": dash.ALL}, "value"),
         State({"type": "param-input", "algo": dash.ALL, "param": dash.ALL}, "id"),
