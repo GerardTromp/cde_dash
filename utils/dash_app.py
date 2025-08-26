@@ -267,6 +267,21 @@ def setup_callbacks(self):
     @self.app.callback(
         Output("model-status", "children"), [Input("model-selector", "value")]
     )
+    # --- Callback: render parameter UIs ---
+    @self.app.callback(Output("param-ui", "children"), Input("algo-selector", "value"))
+    def update_params(algos):
+        if not algos:
+            return []
+        return [param_inputs(param_sets[a], a) for a in algos]
+
+    # --- Callback: update param_sets on any input change ---
+    @self.app.callback(
+        self,
+        Output("debug-output", "children"),
+        Input({"type": "param-input", "algo": dash.ALL, "param": dash.ALL}, "value"),
+        State({"type": "param-input", "algo": dash.ALL, "param": dash.ALL}, "id"),
+        prevent_initial_call=True,
+    )
     def update_model_status(selected_model):
         return dbc.Alert(
             (
@@ -277,23 +292,22 @@ def setup_callbacks(self):
             color=("success" if selected_model in self.embedding_models else "danger"),
         )
 
-
-def _format_clipboard_data(self, selected_data: List[Dict]) -> str:
-    if not selected_data:
-        return "No data selected"
-    lines = ["Selected CDE Data", "=" * 50, ""]
-    for i, item in enumerate(selected_data, 1):
-        lines.extend(
-            [
-                f"CDE {i}:",
-                f"  Tiny ID: {item.get('tiny_id', 'N/A')}",
-                f"  Domain: {item.get('domain', 'N/A')}",
-                f"  Cluster: {item.get('cluster', 'N/A')}",
-                f"  Name: {item.get('name', 'N/A')}",
-                f"  Question: {item.get('question', 'N/A')}",
-                f"  Definition: {item.get('definition', 'N/A')}",
-                f"  Coordinates: ({item.get('x', 'N/A'):.3f}, {item.get('y', 'N/A'):.3f})",
-                "",
-            ]
-        )
-    return "\n".join(lines)
+    def _format_clipboard_data(self, selected_data: List[Dict]) -> str:
+        if not selected_data:
+            return "No data selected"
+        lines = ["Selected CDE Data", "=" * 50, ""]
+        for i, item in enumerate(selected_data, 1):
+            lines.extend(
+                [
+                    f"CDE {i}:",
+                    f"  Tiny ID: {item.get('tiny_id', 'N/A')}",
+                    f"  Domain: {item.get('domain', 'N/A')}",
+                    f"  Cluster: {item.get('cluster', 'N/A')}",
+                    f"  Name: {item.get('name', 'N/A')}",
+                    f"  Question: {item.get('question', 'N/A')}",
+                    f"  Definition: {item.get('definition', 'N/A')}",
+                    f"  Coordinates: ({item.get('x', 'N/A'):.3f}, {item.get('y', 'N/A'):.3f})",
+                    "",
+                ]
+            )
+        return "\n".join(lines)
