@@ -20,11 +20,12 @@ def apply_dimensionality_reduction(
     start_time = time.time()
     scaler = StandardScaler()
     embeddings_scaled = scaler.fit_transform(embeddings)
-    # print(f"{self.analysis_params}\n")
-    # tsne_params = self.analysis_params["TSNE"]
-    # umap_params = self.analysis_params["UMAP"]
-    tsne_params = self.tsne_params
-    umap_params = self.umap_params
+    ####
+    # these local variables can be replaced with **self.params['section'] in the calls below
+    tsne_params = self.params["TSNE"]
+    umap_params = self.params["UMAP"]
+    # tsne_params = self.tsne_params
+    # umap_params = self.umap_params
     # print(f"modified TSNE params {tsne_params}\n")
     # print(f"modified UMAP params {umap_params}\n")
     ####
@@ -46,10 +47,8 @@ def apply_dimensionality_reduction(
     }
     umap_params.update(umap_local)
     if method == "tsne":
-        # reducer = TSNE(n_components=2, random_state=42, perplexity=min(30, len(embeddings) // 4), metric='cosine', method='exact')
         reducer = TSNE(**tsne_params)
     elif method == "umap":
-        # reducer = umap.UMAP(n_components=2, random_state=42, n_neighbors=min(15, len(embeddings) // 3), min_dist=0.1, metric='cosine')
         reducer = umap.UMAP(**umap_params)
     else:
         raise ValueError(f"Unknown method: {method}")

@@ -76,7 +76,7 @@ class InteractiveClusteringAnalyzer:
         self.hdbscan_params = {}
         self.umap_params = {}
         self.tsne_params = {}
-        self.analysis_params = {}
+        self.params = {}
         self.app = None
 
     load_domain_mapping = load_domain_mapping
@@ -115,6 +115,8 @@ def main():
         return
     else:
         # analyzer.analysis_params = params
+        analyzer.params = params
+        # these should be redundant 
         analyzer.umap_params = params["UMAP"]
         analyzer.tsne_params = params["TSNE"]
         analyzer.hdbscan_params = params["HDBSCAN"]

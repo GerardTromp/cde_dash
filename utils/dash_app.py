@@ -9,6 +9,7 @@ from dash import dcc, html, Input, Output, State, callback_context  # type: igno
 from typing import Dict, List, Tuple, Optional, Any
 from datetime import datetime
 from utils.functions import logger
+from utils.dash_app_functions import update_plot, update_selection_info, handle_export
 
 
 def create_dash_app(self) -> dash.Dash:
@@ -36,16 +37,45 @@ def create_dash_app(self) -> dash.Dash:
                 [
                     dbc.Col(
                         [
-                            dbc.Card(
-                                [
-                                    dbc.CardHeader("Model Selection"),
-                                    dbc.CardBody(
-                                        [
-                                            dbc.RadioItems( id="model-selector", options=model_options, value=value_option, inline=True,),
-                                            html.Div( id="model-status", className="mt-2"),
+                            dbc.Tabs(
+                                id="models-parameters-tabs",
+                                active_tab="model-param-models",
+                                children = [
+                                    dbc.Tab(
+                                        label="ModelsTab", 
+                                        tab_id="model-param-models",
+                                        children=[
+                                            dbc.Card(
+                                                [
+                                                    dbc.CardHeader("Model Selection"),
+                                                    dbc.CardBody(
+                                                        [
+                                                            dbc.RadioItems( id="model-selector", options=model_options, value=value_option, inline=True,),
+                                                            html.Div( id="model-status", className="mt-2"),
+                                                        ]
+                                                    ),
+                                                ]
+                                            )
                                         ]
                                     ),
-                                ]
+                                    dbc.Tab(
+                                        label="ParametersTab", 
+                                        tab_id="model-param-parameters",
+                                        children=[
+                                            html.H2("Parameter Configuration"),
+                                            dcc.Dropdown(
+                                                id="algo-selector",
+                                                options=[{"label": k, "value": k} for k in self.params.keys()],
+                                                value=["UMAP"],
+                                                multi=True,
+                                            ),
+                                            html.Div(id="param-ui"),
+                                            html.Hr(),
+                                            dbc.Button("Show Current Params", id="show-btn", className="mb-3"),
+                                            html.Pre(id="debug-output"),
+                                        ]
+                                    ),
+                                ],
                             )
                         ]
                     )
@@ -150,50 +180,9 @@ def setup_callbacks(self):
         ],
         [Input("model-selector", "value")],
     )
-    def update_plot(selected_model):
-        """Update plot based on model selection"""
-        print(f"Generating plot for {selected_model}...")
-        if selected_model not in self.embedding_models:
-            empty_fig = go.Figure()
-            empty_fig.add_annotation(
-                text=f"Model '{selected_model}' not available.",
-                xref="paper",
-                yref="paper",
-                x=0.5,
-                y=0.5,
-                showarrow=False,
-                font=dict(size=14, color="red"),
-            )
-            empty_fig.update_layout(
-                title=f"Model Not Available: {selected_model}",
-                width=800,
-                height=400,
-            )
-            return empty_fig, selected_model
-        if selected_model not in self.analysis_results:
-            results = self.run_analysis(selected_model)
-            if results:
-                self.analysis_results[selected_model] = results
-                figures = self.create_faceted_plots(results)
-                if figures:
-                    print(f"Plot generated for {selected_model}")
-                    return figures[0], selected_model
-        if selected_model in self.analysis_results:
-            figures = self.create_faceted_plots(self.analysis_results[selected_model])
-            if figures:
-                print(f"Plot generated for {selected_model}")
-                return figures[0], selected_model
-        empty_fig = go.Figure()
-        empty_fig.add_annotation(
-            text="No data available",
-            xref="paper",
-            yref="paper",
-            x=0.5,
-            y=0.5,
-            showarrow=False,
-        )
-        print(f"No data for {selected_model}")
-        return empty_fig, selected_model
+    def _update_plot(selected_model):
+        print(selected_model)
+        return update_plot(self=self, selected_model=selected_model)
 
     @self.app.callback(
         [
@@ -202,26 +191,8 @@ def setup_callbacks(self):
         ],
         [Input("clustering-plot", "selectedData")],
     )
-    def update_selection_info(selected_data):
-        """Update selection info and store data."""
-        if not selected_data or not selected_data.get("points"):
-            return "No points selected", ""
-        points = selected_data["points"]
-        selected_data_list = [
-            {
-                "tinyid": point["customdata"][0],
-                "cluster": point["customdata"][1],
-                "name": point["customdata"][2],
-                "question": point["customdata"][3],
-                "definition": point["customdata"][4],
-                "domain": point.get("legendgroup", "Unknown"),
-                "x": point["x"],
-                "y": point["y"],
-            }
-            for point in points
-            if "customdata" in point
-        ]
-        return f"Selected {len(points)} data point(s)", json.dumps(selected_data_list)
+    def _pdate_selection_info(selected_data):
+        return update_selection_info(selected_data)
 
     @self.app.callback(
         Output("export-status", "children"),
@@ -235,34 +206,21 @@ def setup_callbacks(self):
             State("current-model-store", "children"),
         ],
     )
-    def handle_export(
+    def _handle_export(
         json_clicks, csv_clicks, clipboard_clicks, selected_data_json, current_model
     ):
         """Handle data export."""
         ctx = callback_context
-        if not ctx.triggered or not selected_data_json:
-            return dbc.Alert("No data selected", color="warning")
-        try:
-            selected_data = json.loads(selected_data_json)
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            if ctx.triggered[0]["prop_id"].split(".")[0] == "export-json-btn":
-                filename = f"selected_cdes_{current_model}_{timestamp}.json"
-                with open(filename, "w", encoding="utf-8") as f:
-                    json.dump(selected_data, f, indent=2, ensure_ascii=False)
-                return dbc.Alert(f"Data exported to {filename}", color="success")
-            elif ctx.triggered[0]["prop_id"].split(".")[0] == "export-csv-btn":
-                filename = f"selected_cdes_{current_model}_{timestamp}.csv"
-                pd.DataFrame(selected_data).to_csv(
-                    filename, index=False, encoding="utf-8"
-                )
-                return dbc.Alert(f"Data exported to {filename}", color="success")
-            elif ctx.triggered[0]["prop_id"].split(".")[0] == "copy-clipboard-btn":
-                pyperclip.copy(self._format_clipboard_data(selected_data))
-                return dbc.Alert("Data copied to clipboard", color="success")
-        except Exception as e:
-            logger.error(f"Export error: {e}")
-            return dbc.Alert(f"Export failed: {str(e)}", color="danger")
-        return ""
+        return handle_export(
+            self,
+            ctx,
+            json_clicks,
+            csv_clicks,
+            clipboard_clicks,
+            selected_data_json,
+            current_model,
+        )
+ 
 
     @self.app.callback(
         Output("model-status", "children"), [Input("model-selector", "value")]
