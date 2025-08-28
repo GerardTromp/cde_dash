@@ -25,6 +25,7 @@ from utils.functions import (
     load_cde_data,
     load_embedding_models,
     load_configs,
+    update_params_at_load,
 )
 from utils.dash_app import create_dash_app, setup_callbacks
 from utils.argparse import cde_argparse
@@ -55,14 +56,17 @@ class InteractiveClusteringAnalyzer:
         """Initialize analyzer with HDBSCAN parameters."""
         # fmt: off
         self.d3_colors = [
-            "#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#9467bd", "#8c564b",
-            "#e377c2", "#7f7f7f", "#bcbd22", "#17becf", "#aec7e8", "#ffbb78",
-            "#98df8a", "#ff9896", "#c5b0d5", "#c49c94", "#f7b6d3", "#c7c7c7",
-            "#dbdb8d", "#9edae5",
+            "#0057E9", "#87E911", "#FF00BD", "#8931EF", "#F2CA19", "#E11845"
+            # "#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#9467bd", "#8c564b",
+            # "#e377c2", "#7f7f7f", "#bcbd22", "#17becf", "#aec7e8", "#ffbb78",
+            # "#98df8a", "#ff9896", "#c5b0d5", "#c49c94", "#f7b6d3", "#c7c7c7",
+            # "#dbdb8d", "#9edae5",
         ]
         self.marker_shapes = [
-            "circle", "square", "diamond", "cross",
-            "x", "triangle-up", "triangle-down", "star",
+            "circle", "square", "diamond", 
+            "triangle-up", "triangle-down",
+            # "circle", "square", "diamond", "cross",
+            # "x", "triangle-up", "triangle-down", "star",
         ]
         # fmt: on
         self.embedding_models = {}
@@ -95,6 +99,7 @@ class InteractiveClusteringAnalyzer:
     apply_clustering = apply_clustering
     apply_dimensionality_reduction = apply_dimensionality_reduction
     create_faceted_plots = create_faceted_plots
+    update_params_at_load = update_params_at_load
 
 
 def main():
@@ -116,7 +121,7 @@ def main():
     else:
         # analyzer.analysis_params = params
         analyzer.params = params
-        # these should be redundant 
+        # these should be redundant
         analyzer.umap_params = params["UMAP"]
         analyzer.tsne_params = params["TSNE"]
         analyzer.hdbscan_params = params["HDBSCAN"]
@@ -142,6 +147,11 @@ def main():
     print(
         f"These are the models loaded into 'embeddding_models': {analyzer.embedding_models.keys()}"
     )
+    try:
+        analyzer.update_params_at_load()
+        print("Algorithmic update of 'perplexity and n_neighbors successful'")
+    except Exception as e:
+        print(f"\n--- Error updating parameters: {e}---\n")
     print("Creating Dash application...")
     app = analyzer.create_dash_app()
     print("Setting up interactive callbacks...")

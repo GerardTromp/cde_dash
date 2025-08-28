@@ -416,3 +416,11 @@ def auto_cast(val):
         # --- fallback string ---
         return v
     return val
+
+
+def update_params_at_load(self):
+    embed_nrow = len(list(self.embedding_models.values())[0])
+    self.params["TSNE"]["perplexity"] = min(30, embed_nrow // 4)
+    self.params["UMAP"]["n_neighbors"] = min(15, embed_nrow // 4)
+
+    return None

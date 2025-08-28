@@ -9,7 +9,15 @@ from dash import dcc, html, Input, Output, State, callback_context  # type: igno
 from typing import Dict, List, Tuple, Optional, Any
 from datetime import datetime
 from utils.functions import logger
-from utils.dash_app_functions import update_plot, update_selection_info, handle_export
+
+# from utils.internal_functions import _get_color_and_shape
+from utils.dash_app_functions import (
+    update_plot,
+    update_selection_info,
+    handle_export,
+    param_inputs,
+    auto_cast,
+)
 
 
 def create_dash_app(self) -> dash.Dash:
@@ -27,7 +35,7 @@ def create_dash_app(self) -> dash.Dash:
                 [
                     dbc.Col(
                         [
-                            html.H1( "Interactive CDE Clustering Analysis", className="text-center mb-4",),
+                            html.H1( "Interactive CDE Clustering Analysis (2)", className="text-center mb-4",),
                             html.Hr(),
                         ]
                     )
@@ -71,8 +79,10 @@ def create_dash_app(self) -> dash.Dash:
                                             ),
                                             html.Div(id="param-ui"),
                                             html.Hr(),
-                                            dbc.Button("Show Current Params", id="show-btn", className="mb-3"),
+                                            dbc.Button("Show Current Params", id="show-params-btn", className="mb-3"),
                                             html.Pre(id="debug-output"),
+                                            dbc.Button("Run", id="run-newparams-btn", className="mb-4"),
+                                            html.Pre(id="run-state"),
                                         ]
                                     ),
                                 ],
@@ -191,7 +201,7 @@ def setup_callbacks(self):
         ],
         [Input("clustering-plot", "selectedData")],
     )
-    def _pdate_selection_info(selected_data):
+    def _update_selection_info(selected_data):
         return update_selection_info(selected_data)
 
     @self.app.callback(
@@ -220,35 +230,6 @@ def setup_callbacks(self):
             selected_data_json,
             current_model,
         )
- 
-
-    @self.app.callback(
-        Output("model-status", "children"), [Input("model-selector", "value")]
-    )
-    # --- Callback: render parameter UIs ---
-    @self.app.callback(Output("param-ui", "children"), Input("algo-selector", "value"))
-    # def update_params(algos):
-    #     if not algos:
-    #         return []
-    #     return [param_inputs(param_sets[a], a) for a in algos]
-
-    # --- Callback: update param_sets on any input change ---
-    @self.app.callback(
-        # self,
-        Output("debug-output", "children"),
-        Input({"type": "param-input", "algo": dash.ALL, "param": dash.ALL}, "value"),
-        State({"type": "param-input", "algo": dash.ALL, "param": dash.ALL}, "id"),
-        prevent_initial_call=True,
-    )
-    def update_model_status(selected_model):
-        return dbc.Alert(
-            (
-                f" {selected_model} loaded"
-                if selected_model in self.embedding_models
-                else f" {selected_model} unavailable"
-            ),
-            color=("success" if selected_model in self.embedding_models else "danger"),
-        )
 
     def _format_clipboard_data(self, selected_data: List[Dict]) -> str:
         if not selected_data:
@@ -269,3 +250,63 @@ def setup_callbacks(self):
                 ]
             )
         return "\n".join(lines)
+
+    @self.app.callback(
+        Output("model-status", "children"), [Input("model-selector", "value")]
+    )
+    def update_model_status(selected_model):
+        return dbc.Alert(
+            (
+                f" {selected_model} loaded"
+                if selected_model in self.embedding_models
+                else f" {selected_model} unavailable"
+            ),
+            color=("success" if selected_model in self.embedding_models else "danger"),
+        )
+
+    # --- Callback: render parameter UIs ---
+    @self.app.callback(Output("param-ui", "children"), Input("algo-selector", "value"))
+    def update_params(algos):
+        if not algos:
+            return []
+        return [param_inputs(self.params[a], a) for a in algos]
+
+    # --- Callback: update param_sets on any input change ---
+    @self.app.callback(
+        # self,
+        Output("debug-output", "children"),
+        Input({"type": "param-input", "algo": dash.ALL, "param": dash.ALL}, "value"),
+        State({"type": "param-input", "algo": dash.ALL, "param": dash.ALL}, "id"),
+        prevent_initial_call=True,
+    )
+    def sync_params(values, ids):
+        for v, id_dict in zip(values, ids):
+            algo = id_dict["algo"]
+            param = id_dict["param"]
+            self.params[algo][param] = auto_cast(v)  # <-- cast before saving
+        # param_string=f"{{\n"
+        # for k, v in parameter_sets:
+        #     param_string = param_string + print(f"  {k}: {v}\n")
+        # param_string = param_string + f"}}"
+        return f"Updated Params:\n{self.params}"
+
+
+# def _format_clipboard_data(self, selected_data: List[Dict]) -> str:
+#     if not selected_data:
+#         return "No data selected"
+#     lines = ["Selected CDE Data", "=" * 50, ""]
+#     for i, item in enumerate(selected_data, 1):
+#         lines.extend(
+#             [
+#                 f"CDE {i}:",
+#                 f"  Tiny ID: {item.get('tiny_id', 'N/A')}",
+#                 f"  Domain: {item.get('domain', 'N/A')}",
+#                 f"  Cluster: {item.get('cluster', 'N/A')}",
+#                 f"  Name: {item.get('name', 'N/A')}",
+#                 f"  Question: {item.get('question', 'N/A')}",
+#                 f"  Definition: {item.get('definition', 'N/A')}",
+#                 f"  Coordinates: ({item.get('x', 'N/A'):.3f}, {item.get('y', 'N/A'):.3f})",
+#                 "",
+#             ]
+#         )
+#     return "\n".join(lines)

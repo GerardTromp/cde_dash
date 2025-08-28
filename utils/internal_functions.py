@@ -28,9 +28,7 @@ def _truncate_text(self, text: str, max_chars: int = 212) -> str:
 def _get_color_and_shape(self, category_idx: int) -> Tuple[str, str]:
     """Get color and marker shape for category"""
     color = self.d3_colors[category_idx % len(self.d3_colors)]
-    shape = self.marker_shapes[
-        category_idx // len(self.d3_colors) % len(self.marker_shapes)
-    ]
+    shape = self.marker_shapes[category_idx % len(self.marker_shapes)]
     return color, shape
 
 
@@ -61,6 +59,13 @@ def _create_faceted_comparison_figure(
         for dom_idx, domain in enumerate(domains):
             mask = df["domain"] == domain
             color, shape = self._get_color_and_shape(dom_idx)
+            match shape:
+                case "triangle-up":
+                    size = 7
+                case "triangle-down":
+                    size = 7
+                case _:
+                    size = 6
             hover_template = (
                 "<b>TinyID:</b> %{customdata[0]}<br>"
                 "<b>Domain:</b> " + domain + "<br>"
@@ -78,8 +83,9 @@ def _create_faceted_comparison_figure(
                     name=domain if method_idx == 0 else None,
                     marker=dict(
                         color=color,
-                        size=6,
-                        opacity=0.6,
+                        size=size,
+                        # size=[7 if re.match("triangle", s) else 6 for s in shape],
+                        opacity=0.4,
                         symbol=shape,
                         line=dict(width=1, color="rgba(255,255,255,0.6)"),
                     ),

@@ -90,48 +90,11 @@ def param_inputs(params: dict, algo_name: str):
     return dbc.Card([dbc.CardHeader(algo_name), dbc.CardBody(rows)], className="mb-3")
 
 
-# # --- Layout ---
-# app.layout = dbc.Container(
-#     [
-#         html.H2("Parameter Configuration"),
-#         dcc.Dropdown(
-#             id="algo-selector",
-#             options=[{"label": k, "value": k} for k in param_sets.keys()],
-#             value=["UMAP"],
-#             multi=True,
-#         ),
-#         html.Div(id="param-ui"),
-#         html.Hr(),
-#         dbc.Button("Show Current Params", id="show-btn", className="mb-3"),
-#         html.Pre(id="debug-output"),
-#     ],
-#     fluid=True,
-# )
-
-
-# # --- Callback: render parameter UIs ---
-# @self.app.callback(Output("param-ui", "children"), Input("algo-selector", "value"))
-# def update_params(algos):
-#     if not algos:
-#         return []
-#     return [param_inputs(param_sets[a], a) for a in algos]
-
-
-# # --- Callback: update param_sets on any input change ---
-# @self.app.callback(
-#     self,
-#     Output("debug-output", "children"),
-#     Input({"type": "param-input", "algo": dash.ALL, "param": dash.ALL}, "value"),
-#     State({"type": "param-input", "algo": dash.ALL, "param": dash.ALL}, "id"),
-#     prevent_initial_call=True,
-# )
-
-
 def sync_params(self, values, ids):
     for v, id_dict in zip(values, ids):
         algo = id_dict["algo"]
         param = id_dict["param"]
-        self.param_sets[algo][param] = auto_cast(v)  # <-- cast before saving
+        self.params[algo][param] = auto_cast(v)  # <-- cast before saving
     return f"Updated Params:\n{self.param_sets}"
 
 

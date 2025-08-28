@@ -24,32 +24,10 @@ def apply_dimensionality_reduction(
     # these local variables can be replaced with **self.params['section'] in the calls below
     tsne_params = self.params["TSNE"]
     umap_params = self.params["UMAP"]
-    # tsne_params = self.tsne_params
-    # umap_params = self.umap_params
-    # print(f"modified TSNE params {tsne_params}\n")
-    # print(f"modified UMAP params {umap_params}\n")
-    ####
-    # Move the parameter update out of this function so that the dash app can dynamically update the dictionary
-    tsne_local = {
-        "n_components": 2,
-        "random_state": 42,
-        "perplexity": min(30, len(embeddings) // 4),
-        "metric": "cosine",
-        "method": "exact",
-    }
-    tsne_params.update(tsne_local)
-    umap_local = {
-        "n_components": 2,
-        "random_state": 42,
-        "n_neighbors": min(15, len(embeddings) // 3),
-        "min_dist": 0.1,
-        "metric": "cosine",
-    }
-    umap_params.update(umap_local)
     if method == "tsne":
-        reducer = TSNE(**tsne_params)
+        reducer = TSNE(**self.params["TSNE"])
     elif method == "umap":
-        reducer = umap.UMAP(**umap_params)
+        reducer = umap.UMAP(**self.params["UMAP"])
     else:
         raise ValueError(f"Unknown method: {method}")
     reduced_embeddings = reducer.fit_transform(embeddings_scaled)
