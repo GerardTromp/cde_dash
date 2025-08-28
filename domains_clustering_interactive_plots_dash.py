@@ -82,6 +82,7 @@ class InteractiveClusteringAnalyzer:
         self.tsne_params = {}
         self.params = {}
         self.app = None
+        self.selected_model = None
 
     load_domain_mapping = load_domain_mapping
     extract_text_fields = extract_text_fields

@@ -73,7 +73,7 @@ def param_inputs(params: dict, algo_name: str):
         rows.append(
             dbc.Row(
                 [
-                    dbc.Col(html.Label(k, htmlFor=f"{algo_name}-{k}"), width=3),
+                    dbc.Col(html.Label(k, htmlFor=f"{algo_name}-{k}"), width=2),
                     dbc.Col(
                         dcc.Input(
                             id={"type": "param-input", "algo": algo_name, "param": k},
@@ -81,13 +81,13 @@ def param_inputs(params: dict, algo_name: str):
                             type="text",
                             className="form-control",
                         ),
-                        width=9,
+                        width=2,
                     ),
                 ],
-                className="mb-2",
+                className="mb-0",
             )
         )
-    return dbc.Card([dbc.CardHeader(algo_name), dbc.CardBody(rows)], className="mb-3")
+    return dbc.Card([dbc.CardHeader(algo_name), dbc.CardBody(rows)], className="mb-1")
 
 
 def sync_params(self, values, ids):
@@ -138,7 +138,7 @@ def config_to_dict(configuration) -> Dict:
     return config_dict
 
 
-def update_plot(self, selected_model):
+def update_plot(self, selected_model, force=False):
     """Update plot based on model selection"""
     print(f"Generating plot for {selected_model}...")
     if selected_model not in self.embedding_models:
@@ -158,7 +158,7 @@ def update_plot(self, selected_model):
             height=400,
         )
         return empty_fig, selected_model
-    if selected_model not in self.analysis_results:
+    if force == True or selected_model not in self.analysis_results:
         results = self.run_analysis(selected_model)
         if results:
             self.analysis_results[selected_model] = results

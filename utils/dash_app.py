@@ -59,12 +59,12 @@ def create_dash_app(self) -> dash.Dash:
                                                     dbc.CardBody(
                                                         [
                                                             dbc.RadioItems( id="model-selector", options=model_options, value=value_option, inline=True,),
-                                                            html.Div( id="model-status", className="mt-2"),
+                                                            html.Div( id="model-status", className="mt-1 mb-1"),
                                                         ]
                                                     ),
-                                                ]
-                                            )
-                                        ]
+                                                ],
+                                            ),
+                                        ],
                                     ),
                                     dbc.Tab(
                                         label="ParametersTab", 
@@ -79,11 +79,11 @@ def create_dash_app(self) -> dash.Dash:
                                             ),
                                             html.Div(id="param-ui"),
                                             html.Hr(),
-                                            dbc.Button("Show Current Params", id="show-params-btn", className="mb-3"),
+                                            dbc.Button("Show Current Params", id="show-params-btn", className="mt-1 mb-1"),
                                             html.Pre(id="debug-output"),
-                                            dbc.Button("Run", id="run-newparams-btn", className="mb-4"),
+                                            dbc.Button("Run", id="run-newparams-btn", className="mt-1 mb-1"),
                                             html.Pre(id="run-state"),
-                                        ]
+                                        ],
                                     ),
                                 ],
                             )
@@ -255,6 +255,7 @@ def setup_callbacks(self):
         Output("model-status", "children"), [Input("model-selector", "value")]
     )
     def update_model_status(selected_model):
+        self.selected_model = selected_model
         return dbc.Alert(
             (
                 f" {selected_model} loaded"
@@ -289,6 +290,17 @@ def setup_callbacks(self):
         #     param_string = param_string + print(f"  {k}: {v}\n")
         # param_string = param_string + f"}}"
         return f"Updated Params:\n{self.params}"
+
+    @self.app.callback(
+        Output("run-state", "children"),
+        Input("run-newparams-btn", "n_clicks"),
+    )
+    def run_newparams(n_clicks):
+        if n_clicks:
+            return update_plot(
+                self=self, selected_model=self.selected_model, force=True
+            )
+        return f"Click to run {self.selected_model}"
 
 
 # def _format_clipboard_data(self, selected_data: List[Dict]) -> str:
