@@ -144,7 +144,9 @@ def extract_text_fields(self, df: pd.DataFrame) -> pd.DataFrame:
 def create_faceted_plots(self, results: Dict[str, Any]) -> List[go.Figure]:
     """Create faceted t-SNE/UMAP plots for SAPBERT/MedCPT"""
     print(f"------------- {date_time_string()} ---------------")
-    if not results or results["model_name"] not in ["sapbert", "minilm"]:
+    # if not results or results["model_name"] not in ["sapbert", "minilm"]:
+    #     return []
+    if not results:
         return []
     df = results["filtered_cdes"]
     visualization_embeddings = results["visualization_embeddings"]
