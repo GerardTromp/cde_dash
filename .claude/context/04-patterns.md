@@ -156,6 +156,132 @@ Current testing approach:
 | `internal_functions.py` | Helpers (text, plotting) |
 | `argparse.py` | CLI interface |
 
+## Session Setup Patterns
+
+### AI Agent Session Initialization
+
+When Claude Code (or other AI agents) runs as a subprocess on a remote server via VS Code Remote SSH, it operates in an **isolated shell environment** separate from the user's interactive terminal. This means:
+
+- Environment variables set by the user are not inherited
+- Python virtual environments are not automatically activated
+- The agent's shell starts fresh with each session or after `/compact`
+
+#### The Problem
+
+```
+User Terminal (VS Code SSH)     Claude Code Subprocess
+┌─────────────────────────┐     ┌─────────────────────────┐
+│ source ~/venv/bin/act.. │     │ (no venv active)        │
+│ export DASH_CLUST=...   │ ──X─│ (no env vars)           │
+│ python works correctly  │     │ python → system python  │
+└─────────────────────────┘     └─────────────────────────┘
+         ↑                                 ↑
+     User's env                    Agent's isolated env
+```
+
+#### The Solution: init_session.sh
+
+A session initialization script that the AI agent can `source` to configure its environment:
+
+**Template** (tracked): `.claude/init_session_template.sh`
+**Instance** (untracked): `.claude/init_session.sh`
+
+```bash
+# After /compact or session start, agent runs:
+source .claude/init_session.sh
+```
+
+#### Template vs Instance
+
+| File | Git Status | Contains | Purpose |
+|------|------------|----------|---------|
+| `init_session_template.sh` | Tracked | Placeholders (`<USER>`, `<VENV_NAME>`) | Share setup pattern with contributors |
+| `init_session.sh` | Ignored | Actual paths | Local environment activation |
+
+#### Setup for New Contributors
+
+1. Copy template to instance:
+   ```bash
+   cp .claude/init_session_template.sh .claude/init_session.sh
+   ```
+
+2. Replace placeholders in `init_session.sh`:
+   - `<USER>` → your username
+   - `<VENV_NAME>` → your venv name
+   - `<PATH_TO_CODE>` → path to project
+
+3. Create the Python venv:
+   ```bash
+   python -m venv /home/<USER>/venv/<VENV_NAME>
+   source /home/<USER>/venv/<VENV_NAME>/bin/activate
+   pip install numpy pandas scikit-learn umap-learn plotly dash dash-bootstrap-components pyperclip tqdm
+   ```
+
+#### What init_session.sh Does
+
+1. **Activates Python venv** - Makes project dependencies available
+2. **Exports `DASH_CLUST`** - Project root path for portable script references
+3. **Verifies environment** - Confirms packages are importable
+4. **Prints diagnostic info** - Shows Python version, package versions
+
+#### When to Run
+
+- After starting a new Claude Code session
+- After `/compact` command (context compaction resets shell state)
+- When commands fail with "module not found" or "command not found"
+- When `python --version` shows wrong version
+
+#### Example Output
+
+```
+=== Claude Code Session Initialization ===
+[OK] Python venv activated: /home/gctromp/venv/py312_clustapp/bin/python
+     Python version: Python 3.12.0
+[OK] DASH_CLUST set to: /home/gctromp/Documents/_SUN/SUN_Projects/NLP/clust_app
+[OK] Project directory exists
+
+--- Environment Check ---
+[OK] Dash version: 2.14.0
+[OK] Pandas version: 2.1.0
+
+=== Initialization Complete ===
+```
+
+### Post-Compact Recovery Pattern
+
+**Trigger phrases** (user says any of these):
+- "back from compacting"
+- "just compacted"
+- "context was reset"
+- "environment lost"
+- "session restarted"
+
+**Required action**: Immediately run the initialization script:
+
+```bash
+source .claude/init_session.sh
+```
+
+**Why this is necessary**:
+- The `/compact` command resets Claude's shell environment
+- All environment variables (`DASH_CLUST`, `PATH` modifications) are lost
+- Python venv activation is lost
+- Without recovery, Python commands fail with "command not found" or import errors
+
+**Symptoms of lost environment**:
+```
+pyenv: python: command not found
+ModuleNotFoundError: No module named 'dash'
+```
+
+**Recovery verification**: After running init script, confirm with:
+```bash
+python --version  # Should show venv Python
+echo $DASH_CLUST  # Should show project path
+```
+
+---
+
 ## Parameter Handling
 
 ### INI to Dict Conversion

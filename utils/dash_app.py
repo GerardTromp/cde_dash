@@ -57,6 +57,54 @@ def create_dash_app(self) -> dash.Dash:
                 [
                     dbc.Col(
                         [
+                            dbc.Button(
+                                "Parameters",
+                                id="param-collapse-btn",
+                                color="secondary",
+                                size="sm",
+                                className="mb-2",
+                            ),
+                            dbc.Collapse(
+                                dbc.Card(
+                                    [
+                                        dbc.CardHeader("Algorithm Parameters"),
+                                        dbc.CardBody(
+                                            [
+                                                dbc.Label("Select algorithms to configure:"),
+                                                dcc.Dropdown(
+                                                    id="algo-selector",
+                                                    options=[
+                                                        {"label": "UMAP", "value": "UMAP"},
+                                                        {"label": "t-SNE", "value": "TSNE"},
+                                                    ],
+                                                    value=["UMAP", "TSNE"],
+                                                    multi=True,
+                                                    className="mb-3",
+                                                ),
+                                                html.Div(id="param-ui"),
+                                                dbc.Button(
+                                                    "Re-run Analysis",
+                                                    id="rerun-btn",
+                                                    color="primary",
+                                                    className="mt-3",
+                                                ),
+                                                html.Div(id="debug-output", className="mt-2"),
+                                            ]
+                                        ),
+                                    ]
+                                ),
+                                id="param-collapse",
+                                is_open=False,
+                            ),
+                        ]
+                    )
+                ],
+                className="mb-4",
+            ),
+            dbc.Row(
+                [
+                    dbc.Col(
+                        [
                             dbc.Card(
                                 [
                                     dbc.CardHeader(
@@ -265,33 +313,83 @@ def setup_callbacks(self):
             return dbc.Alert(f"Export failed: {str(e)}", color="danger")
         return ""
 
+    # --- Callback: update model status badge ---
     @self.app.callback(
-        Output("model-status", "children"), [Input("model-selector", "value")]
+        Output("model-status", "children"),
+        [Input("model-selector", "value")]
     )
+    def update_model_status(selected_model):
+        """Update model status badge when selection changes."""
+        return dbc.Alert(
+            f" {selected_model} loaded"
+            if selected_model in self.embedding_models
+            else f" {selected_model} unavailable",
+            color="success" if selected_model in self.embedding_models else "danger",
+        )
+
+    # --- Callback: toggle parameter panel visibility ---
+    @self.app.callback(
+        Output("param-collapse", "is_open"),
+        Input("param-collapse-btn", "n_clicks"),
+        State("param-collapse", "is_open"),
+        prevent_initial_call=True,
+    )
+    def toggle_param_collapse(n_clicks, is_open):
+        """Toggle parameter panel visibility."""
+        return not is_open
+
     # --- Callback: render parameter UIs ---
-    @self.app.callback(Output("param-ui", "children"), Input("algo-selector", "value"))
+    @self.app.callback(
+        Output("param-ui", "children"),
+        Input("algo-selector", "value")
+    )
     def update_params(algos):
+        """Render parameter input cards for selected algorithms."""
         if not algos:
             return []
         param_sets = {"UMAP": self.umap_params, "TSNE": self.tsne_params}
-        return [param_inputs(param_sets[a], a) for a in algos]
+        return [param_inputs(param_sets[a], a) for a in algos if a in param_sets]
 
-    # --- Callback: update param_sets on any input change ---
+    # --- Callback: sync parameter values on input change ---
     @self.app.callback(
         Output("debug-output", "children"),
         Input({"type": "param-input", "algo": dash.ALL, "param": dash.ALL}, "value"),
         State({"type": "param-input", "algo": dash.ALL, "param": dash.ALL}, "id"),
         prevent_initial_call=True,
     )
-    def update_model_status(selected_model):
-        return dbc.Alert(
-            (
-                f" {selected_model} loaded"
-                if selected_model in self.embedding_models
-                else f" {selected_model} unavailable"
-            ),
-            color=("success" if selected_model in self.embedding_models else "danger"),
-        )
+    def sync_params(values, ids):
+        """Update parameter dicts when user edits input fields."""
+        from utils.dash_app_functions import auto_cast
+        for v, id_dict in zip(values, ids):
+            algo = id_dict["algo"]
+            param = id_dict["param"]
+            if algo == "UMAP":
+                self.umap_params[param] = auto_cast(v)
+            elif algo == "TSNE":
+                self.tsne_params[param] = auto_cast(v)
+        return dbc.Alert("Parameters updated", color="info", duration=2000)
+
+    # --- Callback: re-run analysis with updated parameters ---
+    @self.app.callback(
+        Output("clustering-plot", "figure", allow_duplicate=True),
+        Input("rerun-btn", "n_clicks"),
+        State("model-selector", "value"),
+        prevent_initial_call=True,
+    )
+    def rerun_analysis(n_clicks, selected_model):
+        """Clear cache and re-run analysis with updated parameters."""
+        if n_clicks and selected_model:
+            # Invalidate cached results
+            if selected_model in self.analysis_results:
+                del self.analysis_results[selected_model]
+            # Re-run analysis (will use updated params)
+            results = self.run_analysis(selected_model)
+            if results:
+                self.analysis_results[selected_model] = results
+                figures = self.create_faceted_plots(results)
+                if figures:
+                    return figures[0]
+        return dash.no_update
 
     def _format_clipboard_data(self, selected_data: List[Dict]) -> str:
         if not selected_data:

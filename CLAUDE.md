@@ -32,6 +32,22 @@ When starting a new session or executing commands, assume:
    - Usually set in `init_session.sh`
 
 
+## Post-Compact Recovery (IMPORTANT)
+
+When the user says any of these phrases (or semantic equivalents):
+- "back from compacting"
+- "just compacted"
+- "context was reset"
+- "environment lost"
+- "session restarted"
+
+**Immediately run:**
+```bash
+source .claude/init_session.sh
+```
+
+This restores the Python environment that is lost during `/compact`. Without this, Python commands will fail.
+
 **After Session Compaction**: Run the initialization script to set up the environment:
 ```bash
 source .claude/init_session.sh
