@@ -200,6 +200,10 @@ def load_cde_data(
     self, file_path: str = "data/cde_all_nofreqphrase_embeddingText_20250729.csv"
 ) -> pd.DataFrame:
     """Load and filter CDE data by curated domain tinyids."""
+    config = self.config["CDEAnalysis"]
+    if config["alltext"]:
+        file_path = config["alltext"]
+        print(f"This is the file path from the config array: {file_path}\n")
     print(f"Loading CDE data from {file_path}...")
     logger.info(f"Loading CDE data from {file_path}")
     try:
@@ -251,6 +255,7 @@ def setup_logging():
 def load_embedding_models(self) -> Dict:
     modeldata = {}
     config = self.config["CDEAnalysis"]
+    print(config["models"])
     for model in (
         config["models"] if isinstance(config["models"], list) else [config["models"]]
     ):
@@ -259,6 +264,7 @@ def load_embedding_models(self) -> Dict:
             if isinstance(config["embedtext"], list)
             else [config["embedtext"]]
         ):
+            print(f"[LOAD MODEL DATA] just before call: model {model} text {text}")
             embed = load_embedding_model(self, modelname=model, embedding=text)
             if embed is not None:
                 modeldata[model] = embed
@@ -276,16 +282,20 @@ def load_embedding_model(
     """
     config = self.config["CDEAnalysis"]
     formatstr = config["template"]
-    # print(f"In the function load_embedding_model. format string is: {formatstr}")
+    print(f"In the function load_embedding_model. format string is: {formatstr}")
     filepath = formatstr.format(embedtext=embedding, model=modelname)
+    print(f"[FILEPATH] filepath: {filepath}")
+    print(f"[SELECTVEC] selectvec file {config["selectvec"]}")
     try:
         with open(config["selectvec"], "r") as f:
             selectvec = json.load(f)
+            print("   [SELECTVEC]  selectvec loaded:")
     except FileNotFoundError:
         print("Error: {config['selectvec']} not found.")
 
     # read in precomputed, but retain only the embeddings for the analysis
     try:
+        print(f"[EMBED LOAD] Checking for embed existence: {filepath}. {os.path.exists(filepath)}")
         if os.path.exists(filepath):  # type: ignore
             data_array = np.loadtxt(filepath, delimiter=",")  # type: ignore
             data_array = data_array[selectvec,]

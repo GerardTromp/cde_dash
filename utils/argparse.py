@@ -19,7 +19,10 @@ def cde_argparse():
     Perform the argument parsing
     Separating this out permits easy extension of options
     """
-    parser = argparse.ArgumentParser("Arguments for CDE domain clustering and plotting")
+    parser = argparse.ArgumentParser(
+        "Arguments for CDE domain clustering and plotting",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
 
     parser.add_argument(
         "--umapkwargs",
@@ -48,6 +51,12 @@ def cde_argparse():
         action="store",
         default="config/parameters.ini",
         help="Path to an 'ini' format configuration file with the parameters for analysis algorithms",
+    )
+    parser.add_argument(
+        "--port",
+        type=int,
+        default=8050,
+        help="port on which to run the application. ",
     )
 
     args = parser.parse_args()

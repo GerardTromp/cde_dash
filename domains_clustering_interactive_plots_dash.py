@@ -147,7 +147,7 @@ def main():
     print("\nInteractive Clustering Analysis Ready")
     # print("Open browser to: http://127.0.0.1:8050")
     try:
-        app.run(debug=False, host="127.0.0.1", port=8050)
+        app.run(debug=False, host="127.0.0.1", port=args.port)
     except KeyboardInterrupt:
         print("Session ended by user")
     except Exception as e:

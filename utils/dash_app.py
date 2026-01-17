@@ -9,6 +9,7 @@ from dash import dcc, html, Input, Output, State, callback_context  # type: igno
 from typing import Dict, List, Tuple, Optional, Any
 from datetime import datetime
 from utils.functions import logger
+from utils.dash_app_functions import param_inputs
 
 
 def create_dash_app(self) -> dash.Dash:
@@ -272,11 +273,11 @@ def setup_callbacks(self):
     def update_params(algos):
         if not algos:
             return []
+        param_sets = {"UMAP": self.umap_params, "TSNE": self.tsne_params}
         return [param_inputs(param_sets[a], a) for a in algos]
 
     # --- Callback: update param_sets on any input change ---
     @self.app.callback(
-        self,
         Output("debug-output", "children"),
         Input({"type": "param-input", "algo": dash.ALL, "param": dash.ALL}, "value"),
         State({"type": "param-input", "algo": dash.ALL, "param": dash.ALL}, "id"),
