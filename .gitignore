@@ -11,3 +11,4 @@ reorganized_domain_tiny_ids.csv
 requirements_interactive_shr.txt
 .claude/sessions/
 .claude/checkpoints/
+.claude/init_session.sh
