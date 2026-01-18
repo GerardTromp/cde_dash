@@ -1,7 +1,8 @@
 # Parameter UI Expansion - Phased Implementation Plan
 
 **Created**: 2026-01-18
-**Status**: Planning
+**Status**: Phase 2 Complete
+**Last Commit**: `9d87d18` (Phase 1)
 **Reference**: `../Claude_WireframeDescription.md`, `../Wireframe_clusterAppMethodsParameters.zip`
 
 ## Overview
@@ -20,28 +21,37 @@ The wireframe from a separate Claude session provides:
 
 ## Phased Implementation
 
-### Phase 1: Schema Extension (Foundation)
+### Phase 1: Schema Extension (Foundation) ✅ COMPLETE
 **Scope**: Extend method schemas to support tiered parameters
 **Files**: `utils/methods/base.py`, all method files in `dim_reduction/` and `clustering/`
+**Commit**: `9d87d18`
 
 Tasks:
-- [ ] Add `tier` field to parameter schema (1=Essential, 2=Important, 3=Advanced)
-- [ ] Update existing method schemas with tier assignments
-- [ ] Add any missing parameters from wireframe definitions
+- [x] Add `tier` field to parameter schema (1=Essential, 2=Important, 3=Advanced)
+- [x] Update existing method schemas with tier assignments
+- [x] Add any missing parameters from wireframe definitions
+- [x] Add `highlight` field for emphasized parameters
 
 **Checkpoint**: Can be compacted after Phase 1
 
 ---
 
-### Phase 2: Collapsible UI Components
+### Phase 2: Collapsible UI Components ✅ COMPLETE
 **Scope**: Create collapsible parameter group components
 **Files**: `utils/dash_app_functions.py`
 
 Tasks:
-- [ ] Create `create_tiered_param_section()` function
-- [ ] Implement `dbc.Collapse` wrappers for Tier 2 and Tier 3
-- [ ] Add toggle buttons/banners for expand/collapse
-- [ ] Style collapsed vs expanded states
+- [x] Create `create_tiered_param_section()` function
+- [x] Implement `dbc.Collapse` wrappers for Tier 2 and Tier 3
+- [x] Add toggle buttons/banners for expand/collapse
+- [x] Style collapsed vs expanded states
+
+**Added Functions**:
+- `_create_param_row()` - Creates single parameter input row with highlight support
+- `create_tiered_param_section()` - Main tiered UI builder with nested collapses
+- `get_tier_collapse_ids()` - Returns IDs for callback wiring
+- `get_toggle_button_text()` - Returns toggle button text based on state
+- `TIER_STYLES` - CSS styles dict for tier UI elements
 
 **Checkpoint**: Can be compacted after Phase 2
 
