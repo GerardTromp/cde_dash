@@ -40,9 +40,11 @@ from utils.run_analysis import (
     apply_dimensionality_reduction,
     evaluate_clustering,
     run_analysis_single,
+    run_clustering_only,
     create_single_plot,
     create_comparison_plot,
     create_clustering_comparison_plot,
+    create_full_comparison_plot,
 )
 
 warnings.filterwarnings("ignore")
@@ -101,9 +103,11 @@ class InteractiveClusteringAnalyzer:
     apply_dimensionality_reduction = apply_dimensionality_reduction
     create_faceted_plots = create_faceted_plots
     run_analysis_single = run_analysis_single
+    run_clustering_only = run_clustering_only
     create_single_plot = create_single_plot
     create_comparison_plot = create_comparison_plot
     create_clustering_comparison_plot = create_clustering_comparison_plot
+    create_full_comparison_plot = create_full_comparison_plot
 
 
 def main():

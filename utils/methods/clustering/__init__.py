@@ -7,5 +7,14 @@ from .hdbscan import HDBSCANMethod
 from .dbscan import DBSCANMethod
 from .kmeans import KMeansMethod
 from .spectral import SpectralMethod
+from .optics import OPTICSMethod
+from .birch import BIRCHMethod
 
-__all__ = ["HDBSCANMethod", "DBSCANMethod", "KMeansMethod", "SpectralMethod"]
+__all__ = [
+    "HDBSCANMethod",
+    "DBSCANMethod",
+    "KMeansMethod",
+    "SpectralMethod",
+    "OPTICSMethod",
+    "BIRCHMethod",
+]

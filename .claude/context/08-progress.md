@@ -3,116 +3,127 @@
 ## Current State
 
 **Branch**: `parameter-update`
-**Status**: Modular architecture complete
-**Last Updated**: 2026-01-18
+**Status**: Feature Complete (Parameter UI Expansion + Modular Architecture)
+**Last Commit**: `7a9964e` (Complete Phase 6: Integration testing and bug fix)
+**Last Updated**: 2026-01-18 20:50
 
 ## Recent Git History
 
 | Commit | Date | Description |
 |--------|------|-------------|
+| `7a9964e` | 2026-01-18 | Complete Phase 6: Integration testing and bug fix |
+| `b6f5f0e` | 2026-01-18 | Add second clustering method comparison feature (Phase 5) |
+| `f34c18c` | 2026-01-18 | Add collapse/expand callbacks for tiered parameter UI (Phase 4) |
+| `6780820` | 2026-01-18 | Integrate tiered parameter UI into layout callbacks |
+| `8adc450` | 2026-01-18 | Add tiered collapsible parameter UI components |
+| `9d87d18` | 2026-01-18 | Add tiered parameter schemas for collapsible UI |
+| `7a45229` | 2026-01-18 | Add large task execution protocol and parameter UI plan |
+| `415c67d` | 2026-01-18 | Add show_progress flag and type annotation fixes |
 | `e7eb716` | 2026-01-18 | Add documentation: context updates and mkdocs structure |
 | `70ac4b2` | 2026-01-18 | Refactor to modular registry-based architecture for methods |
-| `f646975` | 2026-01-17 | Fix callback wiring and add parameter update UI |
-| `12830af` | 2026-01-17 | Claude Checkpoint -- initial commit |
-| `dfa0705` | 2026-01-17 | Add checkpoint system documentation |
 
 ## Active Branches
 
 | Branch | Status | Description |
 |--------|--------|-------------|
 | `main` | Stable | Base working version |
-| `parameter-update` | **Active** | Modular architecture with runtime param updates |
+| `parameter-update` | **Active** | Feature complete - ready for merge |
 
-## Current Work: Modular Architecture (COMPLETED)
+## Recently Completed: Parameter UI Expansion (All 6 Phases)
 
-### Goal
-Refactor to modular, registry-based architecture for dimension reduction and clustering methods with dynamic parameter UI.
+### Phase Summary
 
-### Progress - All Complete
-1. ✅ Created `utils/methods/` plugin system
-2. ✅ Implemented Protocol-based contracts (base.py)
-3. ✅ Created MethodRegistry with decorator registration (registry.py)
-4. ✅ Migrated UMAP to modular method
-5. ✅ Migrated t-SNE to modular method
-6. ✅ Added PCA dimension reduction method
-7. ✅ Migrated HDBSCAN to modular method
-8. ✅ Added DBSCAN clustering method
-9. ✅ Added K-Means clustering method
-10. ✅ Added Spectral clustering method
-11. ✅ Updated dash_app.py with method selectors
-12. ✅ Added param_inputs_from_schema() for dynamic UI
-13. ✅ Added run_analysis_single() using registry
-14. ✅ Added create_single_plot() and create_comparison_plot()
-15. ✅ Added YAML parameter export (export_params.py)
-16. ✅ Added comparison mode toggle
-17. ✅ All tests passing
+| Phase | Description | Commit | Status |
+|-------|-------------|--------|--------|
+| Phase 1 | Schema Extension - Add tier field to all param schemas | `9d87d18` | ✅ Complete |
+| Phase 2 | Collapsible UI Components - dbc.Collapse wrappers | `8adc450` | ✅ Complete |
+| Phase 3 | Update Layout - Integrate tiered params into callbacks | `6780820` | ✅ Complete |
+| Phase 4 | Collapse/Expand Callbacks - Pattern-matching MATCH | `f34c18c` | ✅ Complete |
+| Phase 5 | Second Clustering Method - Dual clustering comparison | `b6f5f0e` | ✅ Complete |
+| Phase 6 | Integration & Testing - Bug fixes, verification | `7a9964e` | ✅ Complete |
+
+### Key Features Implemented
+
+1. **Tiered Parameter Display**
+   - Tier 1 (Essential): Always visible
+   - Tier 2 (Important): Collapsible "More options" button
+   - Tier 3 (Advanced): Nested collapse under Tier 2
+
+2. **Second Clustering Method**
+   - Toggle switch to enable comparison mode
+   - Secondary clustering dropdown
+   - Secondary parameter section (with same tiered display)
+   - Side-by-side clustering comparison plot
+
+3. **Pattern-Matching Callbacks**
+   - 4 MATCH callbacks for tier toggles
+   - Dynamic handling of any method/tier combination
+
+## Previously Completed: Modular Architecture
 
 ### Files Created
 - `utils/methods/__init__.py`
 - `utils/methods/base.py`
 - `utils/methods/registry.py`
-- `utils/methods/dim_reduction/__init__.py`
-- `utils/methods/dim_reduction/umap_method.py`
-- `utils/methods/dim_reduction/tsne.py`
-- `utils/methods/dim_reduction/pca.py`
-- `utils/methods/clustering/__init__.py`
-- `utils/methods/clustering/hdbscan.py`
-- `utils/methods/clustering/dbscan.py`
-- `utils/methods/clustering/kmeans.py`
-- `utils/methods/clustering/spectral.py`
+- `utils/methods/dim_reduction/` (umap, tsne, pca)
+- `utils/methods/clustering/` (hdbscan, dbscan, kmeans, spectral)
 - `utils/export_params.py`
 
-### Files Modified
-- `domains_clustering_interactive_plots_dash.py` - Method bindings
-- `utils/dash_app.py` - New UI with method selectors
-- `utils/dash_app_functions.py` - Added param_inputs_from_schema()
-- `utils/run_analysis.py` - Added registry-based analysis functions
-
-## Completed Features
+## Completed Features (All)
 
 ### Core Functionality
 - ✅ CDE data loading from CSV
 - ✅ Domain mapping and filtering
 - ✅ Precomputed embedding loading
-- ✅ **Modular dimension reduction** (UMAP, t-SNE, PCA)
-- ✅ **Modular clustering** (HDBSCAN, DBSCAN, K-Means, Spectral)
+- ✅ Modular dimension reduction (UMAP, t-SNE, PCA)
+- ✅ Modular clustering (HDBSCAN, DBSCAN, K-Means, Spectral)
 - ✅ Clustering metrics (silhouette, coverage)
 - ✅ Interactive Dash visualization
-- ✅ **Single-select method dropdowns**
-- ✅ **Dynamic parameter population**
-- ✅ **Comparison mode toggle**
-- ✅ Single method plot
-- ✅ Side-by-side comparison plot
+
+### Parameter UI
+- ✅ Single-select method dropdowns
+- ✅ Dynamic parameter population from schema
+- ✅ **Tiered parameter display** (Essential → Important → Advanced)
+- ✅ **Collapsible parameter sections**
+- ✅ Highlighted parameters (orange border for recommendations)
+
+### Comparison Modes
+- ✅ Dimension reduction comparison toggle
+- ✅ Side-by-side dim reduction plot
+- ✅ **Clustering comparison toggle**
+- ✅ **Side-by-side clustering plot**
+
+### Data Export
 - ✅ Lasso/box selection of data points
 - ✅ Export to JSON
 - ✅ Export to CSV
 - ✅ Copy to clipboard
-- ✅ **YAML parameter export**
-- ✅ INI-based configuration
-- ✅ Logging (console + file)
+- ✅ YAML parameter export
 
 ### Infrastructure
-- ✅ Claude checkpoint system structure
-- ✅ Checkpoint documentation
+- ✅ Claude checkpoint system
 - ✅ Method registry system
 - ✅ Protocol-based contracts
+- ✅ MkDocs documentation structure
 
 ## Pending / TODO
 
 ### High Priority
+- [ ] Push changes to remote (`git push origin parameter-update`)
 - [ ] Full integration test with real data
-- [ ] Documentation (mkdocs setup)
+- [ ] Merge to main branch
 
 ### Medium Priority
 - [ ] Add loading indicators during analysis
 - [ ] Add error messages to UI for invalid parameters
 - [ ] Parameter validation before running
+- [ ] Complete MkDocs documentation content
 
 ### Low Priority
 - [ ] Add unit tests for method registry
 - [ ] Reduce unused imports
 - [ ] Add more type hints
-- [ ] README updates
+- [ ] Consider additional methods (OPTICS, BIRCH, Agglomerative)
 
 ## Known Issues
 
@@ -120,10 +131,11 @@ None currently blocking.
 
 ## Next Steps
 
-1. Test full application with real data
-2. Set up mkdocs documentation
-3. Consider adding more methods (e.g., Agglomerative clustering, Isomap)
+1. Push to remote and verify
+2. Test full application with real data
+3. Create PR to merge `parameter-update` → `main`
+4. Consider documentation updates
 
 ---
 
-*Last context file update: 2026-01-18*
+*Last context file update: 2026-01-18 20:50*

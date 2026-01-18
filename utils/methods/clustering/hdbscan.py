@@ -61,10 +61,11 @@ class HDBSCANMethod:
                 "type": "float",
                 "default": 0.0,
                 "min": 0.0,
-                "max": 1.0,
-                "step": 0.05,
-                "description": "Distance threshold for cluster merging",
+                "max": 0.5,
+                "step": 0.001,
+                "description": "Distance threshold for cluster merging (lower = more clusters)",
                 "tier": 2,
+                "highlight": True,
             },
             # Tier 3 - Advanced (nested under Tier 2)
             "metric": {

@@ -66,6 +66,26 @@ This script (not tracked by git) performs all initialization steps:
 
 **See** `.claude/context/04-patterns.md` → "Session Setup Patterns" for detailed examples and troubleshooting.
 
+## Task Execution Protocol
+
+### Default Behavior: Pause Between Tasks
+**CRITICAL**: When working through a todo list, **PAUSE after completing each task** and wait for user acknowledgment before proceeding to the next task. This is the DEFAULT behavior, not an exception.
+
+Rationale:
+- Allows user to verify each change incrementally
+- Prevents cascading errors from propagating across multiple tasks
+- Gives user opportunity to adjust priorities mid-execution
+- Reduces wasted work if requirements change
+
+### Context Usage Threshold
+**CRITICAL**: When context usage reaches **95%**, immediately:
+1. Stop current work at a safe point
+2. Notify user: "Context at 95%. Recommend manual `/compact` now."
+3. Provide continuation prompt for resumption
+4. Wait for user to compact manually
+
+This prevents auto-compacting which loses nuanced context.
+
 ## Large Task Execution Protocol
 
 For extensive multi-phase work that may exceed chat attention limits:

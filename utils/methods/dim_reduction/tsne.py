@@ -45,6 +45,14 @@ class TSNEMethod:
                 "tier": 1,
             },
             # Tier 2 - Important (expandable)
+            "n_components": {
+                "type": "int",
+                "default": 2,
+                "min": 2,
+                "max": 3,
+                "description": "Number of dimensions in output embedding (2 or 3)",
+                "tier": 2,
+            },
             "learning_rate": {
                 "type": "float",
                 "default": 200.0,

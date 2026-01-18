@@ -17,7 +17,7 @@ from utils.dash_app_functions import (
     get_toggle_button_text,
 )
 from utils.methods import MethodRegistry
-from utils.export_params import export_params_yaml
+from utils.export_params import export_params_yaml, export_analysis_package
 
 
 def create_dash_app(self) -> dash.Dash:
@@ -70,6 +70,8 @@ def create_dash_app(self) -> dash.Dash:
                     dbc.Card([
                         dbc.CardHeader("Dimension Reduction"),
                         dbc.CardBody([
+                            # Primary DR method
+                            dbc.Label("Primary Method", className="fw-bold"),
                             dcc.Dropdown(
                                 id="dim-reduction-selector",
                                 options=dim_options,
@@ -78,6 +80,29 @@ def create_dash_app(self) -> dash.Dash:
                                 className="mb-3",
                             ),
                             html.Div(id="dim-reduction-params"),
+                            # Secondary DR toggle and dropdown
+                            html.Hr(className="my-3"),
+                            dbc.Switch(
+                                id="comparison-mode-toggle",
+                                label="Compare two dimension reduction methods",
+                                value=False,
+                                className="mb-2",
+                            ),
+                            html.Div(
+                                id="secondary-dim-reduction-container",
+                                style={"display": "none"},
+                                children=[
+                                    dbc.Label("Secondary Method", className="fw-bold"),
+                                    dcc.Dropdown(
+                                        id="dim-reduction-selector-2",
+                                        options=dim_options,
+                                        value="tsne",
+                                        clearable=False,
+                                        className="mb-3",
+                                    ),
+                                    html.Div(id="dim-reduction-params-2"),
+                                ],
+                            ),
                         ]),
                     ])
                 ], width=6),
@@ -122,31 +147,6 @@ def create_dash_app(self) -> dash.Dash:
                     ])
                 ], width=6),
             ], className="mb-4"),
-            # Comparison Mode Toggle
-            dbc.Row([
-                dbc.Col([
-                    dbc.Switch(
-                        id="comparison-mode-toggle",
-                        label="Compare two dimension reduction methods",
-                        value=False,
-                        className="mb-2",
-                    ),
-                    html.Div(
-                        id="secondary-dim-reduction-container",
-                        style={"display": "none"},
-                        children=[
-                            dbc.Label("Secondary Method:"),
-                            dcc.Dropdown(
-                                id="dim-reduction-selector-2",
-                                options=dim_options,
-                                value="tsne",
-                                clearable=False,
-                                className="mt-2",
-                            ),
-                        ],
-                    ),
-                ])
-            ], className="mb-2"),
             # Action Row
             dbc.Row([
                 dbc.Col([
@@ -160,8 +160,15 @@ def create_dash_app(self) -> dash.Dash:
                         "Export Parameters (YAML)",
                         id="export-params-btn",
                         color="secondary",
+                        className="me-2",
+                    ),
+                    dbc.Button(
+                        "Export Package (YAML + PNG)",
+                        id="export-package-btn",
+                        color="info",
                     ),
                     html.Div(id="param-sync-status", className="mt-2"),
+                    html.Div(id="package-export-status", className="mt-2"),
                 ])
             ], className="mb-4"),
             # Visualization
@@ -248,6 +255,24 @@ def setup_callbacks(self):
     )
     def update_dim_params(method_id):
         """Render tiered parameter inputs for selected dimension reduction method."""
+        if not method_id:
+            return []
+        method_class = MethodRegistry.get_dim_reduction(method_id)
+        schema = method_class.param_schema()
+        # Get current params or use defaults
+        current = getattr(self, f"{method_id}_params", None)
+        if current is None:
+            current = method_class.default_params()
+            setattr(self, f"{method_id}_params", current.copy())
+        return create_tiered_param_section(schema, method_id, current, category="dim_reduction")
+
+    # --- Callback: render secondary dimension reduction parameters ---
+    @self.app.callback(
+        Output("dim-reduction-params-2", "children"),
+        Input("dim-reduction-selector-2", "value"),
+    )
+    def update_dim_params_2(method_id):
+        """Render tiered parameter inputs for secondary dimension reduction method."""
         if not method_id:
             return []
         method_class = MethodRegistry.get_dim_reduction(method_id)
@@ -460,21 +485,57 @@ def setup_callbacks(self):
             del self.analysis_results[cache_key]
 
         # Determine which comparison mode is active
-        # Priority: dim reduction comparison > clustering comparison > single mode
-        if dim_compare_mode and dim_method_2 and dim_method_2 != dim_method:
-            # Dimension reduction comparison mode (original behavior)
+        dim_compare_active = dim_compare_mode and dim_method_2 and dim_method_2 != dim_method
+        cluster_compare_active = cluster_compare_mode and cluster_method_2 and cluster_method_2 != cluster_method
+
+        if dim_compare_active and cluster_compare_active:
+            # Full 2x2 comparison: both dim reduction AND clustering comparison
+            # Grid layout: rows = dim methods, cols = cluster methods
+            # [[dim1_clust1, dim1_clust2], [dim2_clust1, dim2_clust2]]
+            results_grid = [[None, None], [None, None]]
+
+            # Row 0: First dim reduction method
+            results_grid[0][0] = self.run_analysis_single(model, dim_method, cluster_method)
+            if results_grid[0][0]:
+                results_grid[0][1] = self.run_clustering_only(
+                    model, dim_method, cluster_method_2,
+                    results_grid[0][0]["visualization_embeddings"],
+                )
+
+            # Row 1: Second dim reduction method
+            results_grid[1][0] = self.run_analysis_single(model, dim_method_2, cluster_method)
+            if results_grid[1][0]:
+                results_grid[1][1] = self.run_clustering_only(
+                    model, dim_method_2, cluster_method_2,
+                    results_grid[1][0]["visualization_embeddings"],
+                )
+
+            # Check if all results are valid
+            if all(r for row in results_grid for r in row):
+                fig = self.create_full_comparison_plot(results_grid)
+                return fig, model
+
+        elif dim_compare_active:
+            # Dimension reduction comparison mode (1x2)
             results1 = self.run_analysis_single(model, dim_method, cluster_method)
             results2 = self.run_analysis_single(model, dim_method_2, cluster_method)
             if results1 and results2:
                 fig = self.create_comparison_plot(results1, results2)
                 return fig, model
-        elif cluster_compare_mode and cluster_method_2 and cluster_method_2 != cluster_method:
-            # Clustering comparison mode - same dim reduction, different clustering
+
+        elif cluster_compare_active:
+            # Clustering comparison mode (2x1) - same dim reduction, different clustering
             results1 = self.run_analysis_single(model, dim_method, cluster_method)
-            results2 = self.run_analysis_single(model, dim_method, cluster_method_2)
-            if results1 and results2:
-                fig = self.create_clustering_comparison_plot(results1, results2)
-                return fig, model
+            if results1:
+                # Reuse embeddings from results1 for second clustering
+                results2 = self.run_clustering_only(
+                    model, dim_method, cluster_method_2,
+                    results1["visualization_embeddings"],
+                )
+                if results2:
+                    fig = self.create_clustering_comparison_plot(results1, results2)
+                    return fig, model
+
         else:
             # Single method mode
             results = self.run_analysis_single(model, dim_method, cluster_method)
@@ -519,6 +580,54 @@ def setup_callbacks(self):
             return dbc.Alert(f"Parameters exported to {filepath}", color="success", duration=4000)
         except Exception as e:
             logger.error(f"Error exporting params: {e}")
+            return dbc.Alert(f"Export failed: {str(e)}", color="danger")
+
+    # --- Callback: export package (YAML + PNG as archive) ---
+    @self.app.callback(
+        Output("package-export-status", "children"),
+        Input("export-package-btn", "n_clicks"),
+        State("clustering-plot", "figure"),
+        State("dim-reduction-selector", "value"),
+        State("clustering-selector", "value"),
+        State("model-selector", "value"),
+        prevent_initial_call=True,
+    )
+    def export_package(n_clicks, figure, dim_method, cluster_method, model):
+        """Export current analysis as package (YAML params + PNG figure)."""
+        if not n_clicks:
+            return dash.no_update
+
+        if not figure:
+            return dbc.Alert("No figure to export. Run analysis first.", color="warning")
+
+        # Get current params
+        dim_params = getattr(self, f"{dim_method}_params", {})
+        cluster_params = getattr(self, f"{cluster_method}_params", {})
+
+        try:
+            archive_path = export_analysis_package(
+                figure=figure,
+                dim_method=dim_method,
+                dim_params=dim_params,
+                cluster_method=cluster_method,
+                cluster_params=cluster_params,
+                model_name=model,
+                dpi=400,
+                archive_format="auto",
+            )
+            return dbc.Alert(
+                f"Package exported to {archive_path}",
+                color="success",
+                duration=6000,
+            )
+        except ImportError as e:
+            logger.error(f"Missing dependency for export: {e}")
+            return dbc.Alert(
+                "Export requires kaleido: pip install kaleido>=0.2.1",
+                color="danger",
+            )
+        except Exception as e:
+            logger.error(f"Error exporting package: {e}")
             return dbc.Alert(f"Export failed: {str(e)}", color="danger")
 
     # --- Callback: update selection info ---

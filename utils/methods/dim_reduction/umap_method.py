@@ -53,6 +53,14 @@ class UMAPMethod:
                 "tier": 1,
             },
             # Tier 2 - Important (expandable)
+            "n_components": {
+                "type": "int",
+                "default": 2,
+                "min": 2,
+                "max": 10,
+                "description": "Number of dimensions in output embedding",
+                "tier": 2,
+            },
             "metric": {
                 "type": "select",
                 "default": "cosine",

@@ -12,6 +12,7 @@ from sklearn.manifold import TSNE
 from sklearn.metrics import silhouette_score
 from utils.functions import logger, date_time_string
 from utils.methods import MethodRegistry
+from utils.plot_builder import PlotBuilder
 
 
 def apply_dimensionality_reduction(
@@ -266,8 +267,78 @@ def run_analysis_single(
         return None
 
 
+def run_clustering_only(
+    self,
+    model_name: str,
+    dim_reduction_method: str,
+    clustering_method: str,
+    vis_embeddings: NDArray[np.float64],
+) -> Optional[Dict[str, Any]]:
+    """Run clustering on pre-computed embeddings.
+
+    This is used for clustering comparison mode where we want to apply
+    different clustering methods to the same dimension-reduced embeddings.
+
+    Args:
+        model_name: Name of the embedding model (for metadata)
+        dim_reduction_method: Dimension reduction method ID (for metadata)
+        clustering_method: Clustering method ID to apply
+        vis_embeddings: Pre-computed visualization embeddings
+
+    Returns:
+        Dictionary with analysis results or None if failed
+    """
+    print(f"\nRunning clustering only: cluster={clustering_method}")
+    logger.info(f"Running clustering only: cluster={clustering_method}")
+
+    try:
+        # Get method classes from registry
+        dim_class = MethodRegistry.get_dim_reduction(dim_reduction_method)
+        cluster_class = MethodRegistry.get_clustering(clustering_method)
+
+        # Get clustering parameters
+        cluster_params = getattr(self, f"{clustering_method}_params", None)
+        if cluster_params is None:
+            cluster_params = cluster_class.default_params()
+
+        # Apply clustering on the provided embeddings
+        print(f"Applying {cluster_class.name} clustering...")
+        start_time = time.time()
+        clusterer_instance = cluster_class()
+        cluster_labels, clusterer = clusterer_instance.fit_predict(vis_embeddings, cluster_params)
+        n_clusters = len(set(cluster_labels)) - (1 if -1 in cluster_labels else 0)
+        n_noise = list(cluster_labels).count(-1)
+        print(f"Completed {cluster_class.name}: {n_clusters} clusters, {n_noise} noise points in {time.time() - start_time:.2f}s")
+
+        # Evaluate clustering
+        metrics = self.evaluate_clustering(vis_embeddings, cluster_labels)
+
+        return {
+            "model_name": model_name,
+            "dim_reduction_method": dim_reduction_method,
+            "dim_reduction_name": dim_class.name,
+            "clustering_method": clustering_method,
+            "clustering_name": cluster_class.name,
+            "filtered_cdes": self.filtered_cdes,
+            "original_embeddings": self.embedding_models.get(model_name),
+            "visualization_embeddings": vis_embeddings,
+            "cluster_labels": cluster_labels,
+            "clusterer": clusterer,
+            "metrics": metrics,
+        }
+
+    except Exception as e:
+        print(f"Clustering failed: {e}")
+        logger.error(f"Clustering failed: {e}")
+        import traceback
+        traceback.print_exc()
+        return None
+
+
 def create_single_plot(self, results: Dict[str, Any]) -> go.Figure:
     """Create a single plot from analysis results.
+
+    Delegates to PlotBuilder for modular, composable plot generation.
 
     Args:
         results: Dictionary from run_analysis_single()
@@ -277,85 +348,27 @@ def create_single_plot(self, results: Dict[str, Any]) -> go.Figure:
     """
     if not results:
         fig = go.Figure()
-        fig.add_annotation(text="No data available", xref="paper", yref="paper", x=0.5, y=0.5, showarrow=False)
+        fig.add_annotation(
+            text="No data available",
+            xref="paper", yref="paper",
+            x=0.5, y=0.5, showarrow=False
+        )
         return fig
 
-    df = results["filtered_cdes"]
-    vis_embeddings = results["visualization_embeddings"]
-    cluster_labels = results["cluster_labels"]
-    dim_name = results["dim_reduction_name"]
-    cluster_name = results["clustering_name"]
-    metrics = results["metrics"]
-
-    fig = go.Figure()
-
-    # Get unique domains and assign colors
-    domains = df["domain"].unique()
-    colors = self.d3_colors
-
-    for i, domain in enumerate(domains):
-        mask = df["domain"] == domain
-        indices = np.where(mask)[0]
-
-        hover_text = [
-            f"<b>{df.iloc[idx]['name']}</b><br>"
-            f"Domain: {domain}<br>"
-            f"Cluster: {cluster_labels[idx]}<br>"
-            f"Question: {self._truncate_text(df.iloc[idx].get('question', ''), 50)}<br>"
-            f"Definition: {self._truncate_text(df.iloc[idx].get('definition', ''), 50)}"
-            for idx in indices
-        ]
-
-        customdata = [
-            [
-                df.iloc[idx].get("tinyId", "N/A"),
-                int(cluster_labels[idx]),
-                df.iloc[idx].get("name", "N/A"),
-                df.iloc[idx].get("question", "N/A"),
-                df.iloc[idx].get("definition", "N/A"),
-            ]
-            for idx in indices
-        ]
-
-        fig.add_trace(
-            go.Scatter(
-                x=vis_embeddings[mask, 0],
-                y=vis_embeddings[mask, 1],
-                mode="markers",
-                name=domain,
-                legendgroup=domain,
-                marker=dict(
-                    color=colors[i % len(colors)],
-                    size=8,
-                    opacity=0.7,
-                ),
-                text=hover_text,
-                hoverinfo="text",
-                customdata=customdata,
-            )
-        )
-
-    fig.update_layout(
-        title=f"{dim_name} + {cluster_name} | Clusters: {metrics['n_clusters']} | Silhouette: {metrics['silhouette_score']:.3f}",
-        xaxis_title=f"{dim_name} Dimension 1",
-        yaxis_title=f"{dim_name} Dimension 2",
-        showlegend=True,
-        legend=dict(
-            yanchor="top",
-            y=0.99,
-            xanchor="left",
-            x=1.02,
-            title="Domains",
-        ),
-        height=700,
-        hovermode="closest",
+    builder = PlotBuilder(
+        results["filtered_cdes"],
+        self.d3_colors,
+        self._truncate_text,
     )
+    return builder.build_single_plot(results)
 
-    return fig
 
-
-def create_comparison_plot(self, results1: Dict[str, Any], results2: Dict[str, Any]) -> go.Figure:
+def create_comparison_plot(
+    self, results1: Dict[str, Any], results2: Dict[str, Any]
+) -> go.Figure:
     """Create a side-by-side comparison plot of two dimension reduction methods.
+
+    Delegates to PlotBuilder for modular, composable plot generation.
 
     Args:
         results1: Results from first dimension reduction method
@@ -366,228 +379,91 @@ def create_comparison_plot(self, results1: Dict[str, Any], results2: Dict[str, A
     """
     if not results1 or not results2:
         fig = go.Figure()
-        fig.add_annotation(text="Comparison data unavailable", xref="paper", yref="paper", x=0.5, y=0.5, showarrow=False)
+        fig.add_annotation(
+            text="Comparison data unavailable",
+            xref="paper", yref="paper",
+            x=0.5, y=0.5, showarrow=False
+        )
         return fig
 
-    df = results1["filtered_cdes"]
-    vis1 = results1["visualization_embeddings"]
-    vis2 = results2["visualization_embeddings"]
-    labels1 = results1["cluster_labels"]
-    labels2 = results2["cluster_labels"]
-    name1 = results1["dim_reduction_name"]
-    name2 = results2["dim_reduction_name"]
-    cluster_name = results1["clustering_name"]
-    metrics1 = results1["metrics"]
-    metrics2 = results2["metrics"]
-
-    fig = make_subplots(
-        rows=1, cols=2,
-        subplot_titles=[
-            f"{name1} | Clusters: {metrics1['n_clusters']} | Silhouette: {metrics1['silhouette_score']:.3f}",
-            f"{name2} | Clusters: {metrics2['n_clusters']} | Silhouette: {metrics2['silhouette_score']:.3f}",
-        ],
-        horizontal_spacing=0.08,
+    builder = PlotBuilder(
+        results1["filtered_cdes"],
+        self.d3_colors,
+        self._truncate_text,
     )
-
-    domains = df["domain"].unique()
-    colors = self.d3_colors
-
-    for i, domain in enumerate(domains):
-        mask = df["domain"] == domain
-        indices = np.where(mask)[0]
-        color = colors[i % len(colors)]
-
-        # Helper to build hover text
-        def build_hover(idx, labels):
-            return (
-                f"<b>{df.iloc[idx]['name']}</b><br>"
-                f"Domain: {domain}<br>"
-                f"Cluster: {labels[idx]}<br>"
-                f"Question: {self._truncate_text(df.iloc[idx].get('question', ''), 50)}<br>"
-                f"Definition: {self._truncate_text(df.iloc[idx].get('definition', ''), 50)}"
-            )
-
-        def build_customdata(idx, labels):
-            return [
-                df.iloc[idx].get("tinyId", "N/A"),
-                int(labels[idx]),
-                df.iloc[idx].get("name", "N/A"),
-                df.iloc[idx].get("question", "N/A"),
-                df.iloc[idx].get("definition", "N/A"),
-            ]
-
-        # Left subplot (method 1)
-        fig.add_trace(
-            go.Scatter(
-                x=vis1[mask, 0],
-                y=vis1[mask, 1],
-                mode="markers",
-                name=domain,
-                legendgroup=domain,
-                showlegend=True,
-                marker=dict(color=color, size=7, opacity=0.7),
-                text=[build_hover(idx, labels1) for idx in indices],
-                hoverinfo="text",
-                customdata=[build_customdata(idx, labels1) for idx in indices],
-            ),
-            row=1, col=1,
-        )
-
-        # Right subplot (method 2)
-        fig.add_trace(
-            go.Scatter(
-                x=vis2[mask, 0],
-                y=vis2[mask, 1],
-                mode="markers",
-                name=domain,
-                legendgroup=domain,
-                showlegend=False,
-                marker=dict(color=color, size=7, opacity=0.7),
-                text=[build_hover(idx, labels2) for idx in indices],
-                hoverinfo="text",
-                customdata=[build_customdata(idx, labels2) for idx in indices],
-            ),
-            row=1, col=2,
-        )
-
-    fig.update_layout(
-        title=f"Comparison: {name1} vs {name2} ({cluster_name} clustering)",
-        showlegend=True,
-        legend=dict(
-            yanchor="top",
-            y=0.99,
-            xanchor="left",
-            x=1.02,
-            title="Domains",
-        ),
-        height=700,
-        hovermode="closest",
-    )
-
-    fig.update_xaxes(title_text=f"{name1} Dim 1", row=1, col=1)
-    fig.update_yaxes(title_text=f"{name1} Dim 2", row=1, col=1)
-    fig.update_xaxes(title_text=f"{name2} Dim 1", row=1, col=2)
-    fig.update_yaxes(title_text=f"{name2} Dim 2", row=1, col=2)
-
-    return fig
+    return builder.build_dim_comparison(results1, results2)
 
 
-def create_clustering_comparison_plot(self, results1: Dict[str, Any], results2: Dict[str, Any]) -> go.Figure:
-    """Create a side-by-side comparison plot of two clustering methods.
+def create_clustering_comparison_plot(
+    self, results1: Dict[str, Any], results2: Dict[str, Any]
+) -> go.Figure:
+    """Create a two-row comparison plot of two clustering methods.
 
     Both results use the same dimension reduction, so embeddings are identical.
-    The subplots show how different clustering algorithms partition the same embedding space.
+    Delegates to PlotBuilder for modular, composable plot generation.
 
     Args:
         results1: Results from first clustering method
         results2: Results from second clustering method
 
     Returns:
-        Plotly Figure with two subplots
+        Plotly Figure with two row subplots (2 rows x 1 col)
     """
     if not results1 or not results2:
         fig = go.Figure()
-        fig.add_annotation(text="Comparison data unavailable", xref="paper", yref="paper", x=0.5, y=0.5, showarrow=False)
+        fig.add_annotation(
+            text="Comparison data unavailable",
+            xref="paper", yref="paper",
+            x=0.5, y=0.5, showarrow=False
+        )
         return fig
 
-    df = results1["filtered_cdes"]
-    # Both use the same embeddings (same dim reduction method)
-    vis_embeddings = results1["visualization_embeddings"]
-    labels1 = results1["cluster_labels"]
-    labels2 = results2["cluster_labels"]
-    dim_name = results1["dim_reduction_name"]
-    cluster_name1 = results1["clustering_name"]
-    cluster_name2 = results2["clustering_name"]
-    metrics1 = results1["metrics"]
-    metrics2 = results2["metrics"]
-
-    fig = make_subplots(
-        rows=1, cols=2,
-        subplot_titles=[
-            f"{cluster_name1} | Clusters: {metrics1['n_clusters']} | Silhouette: {metrics1['silhouette_score']:.3f}",
-            f"{cluster_name2} | Clusters: {metrics2['n_clusters']} | Silhouette: {metrics2['silhouette_score']:.3f}",
-        ],
-        horizontal_spacing=0.08,
+    builder = PlotBuilder(
+        results1["filtered_cdes"],
+        self.d3_colors,
+        self._truncate_text,
     )
+    return builder.build_cluster_comparison(results1, results2)
 
-    domains = df["domain"].unique()
-    colors = self.d3_colors
 
-    for i, domain in enumerate(domains):
-        mask = df["domain"] == domain
-        indices = np.where(mask)[0]
-        color = colors[i % len(colors)]
+def create_full_comparison_plot(
+    self, results_grid: List[List[Dict[str, Any]]]
+) -> go.Figure:
+    """Create a 2x2 grid comparing dim reduction AND clustering methods.
 
-        # Helper to build hover text
-        def build_hover(idx, labels, cluster_name):
-            return (
-                f"<b>{df.iloc[idx]['name']}</b><br>"
-                f"Domain: {domain}<br>"
-                f"{cluster_name} Cluster: {labels[idx]}<br>"
-                f"Question: {self._truncate_text(df.iloc[idx].get('question', ''), 50)}<br>"
-                f"Definition: {self._truncate_text(df.iloc[idx].get('definition', ''), 50)}"
-            )
+    Delegates to PlotBuilder for modular, composable plot generation.
 
-        def build_customdata(idx, labels):
-            return [
-                df.iloc[idx].get("tinyId", "N/A"),
-                int(labels[idx]),
-                df.iloc[idx].get("name", "N/A"),
-                df.iloc[idx].get("question", "N/A"),
-                df.iloc[idx].get("definition", "N/A"),
-            ]
+    Args:
+        results_grid: 2x2 nested list of results:
+            [[dim1_clust1, dim1_clust2],
+             [dim2_clust1, dim2_clust2]]
 
-        # Left subplot (clustering method 1)
-        fig.add_trace(
-            go.Scatter(
-                x=vis_embeddings[mask, 0],
-                y=vis_embeddings[mask, 1],
-                mode="markers",
-                name=domain,
-                legendgroup=domain,
-                showlegend=True,
-                marker=dict(color=color, size=7, opacity=0.7),
-                text=[build_hover(idx, labels1, cluster_name1) for idx in indices],
-                hoverinfo="text",
-                customdata=[build_customdata(idx, labels1) for idx in indices],
-            ),
-            row=1, col=1,
+    Returns:
+        Plotly Figure with 2x2 subplot grid
+    """
+    if not results_grid or len(results_grid) < 2:
+        fig = go.Figure()
+        fig.add_annotation(
+            text="Invalid comparison grid",
+            xref="paper", yref="paper",
+            x=0.5, y=0.5, showarrow=False
         )
+        return fig
 
-        # Right subplot (clustering method 2)
-        fig.add_trace(
-            go.Scatter(
-                x=vis_embeddings[mask, 0],
-                y=vis_embeddings[mask, 1],
-                mode="markers",
-                name=domain,
-                legendgroup=domain,
-                showlegend=False,
-                marker=dict(color=color, size=7, opacity=0.7),
-                text=[build_hover(idx, labels2, cluster_name2) for idx in indices],
-                hoverinfo="text",
-                customdata=[build_customdata(idx, labels2) for idx in indices],
-            ),
-            row=1, col=2,
+    # Use first valid result for DataFrame reference
+    first_result = results_grid[0][0]
+    if not first_result:
+        fig = go.Figure()
+        fig.add_annotation(
+            text="Comparison data unavailable",
+            xref="paper", yref="paper",
+            x=0.5, y=0.5, showarrow=False
         )
+        return fig
 
-    fig.update_layout(
-        title=f"Clustering Comparison: {cluster_name1} vs {cluster_name2} ({dim_name} embedding)",
-        showlegend=True,
-        legend=dict(
-            yanchor="top",
-            y=0.99,
-            xanchor="left",
-            x=1.02,
-            title="Domains",
-        ),
-        height=700,
-        hovermode="closest",
+    builder = PlotBuilder(
+        first_result["filtered_cdes"],
+        self.d3_colors,
+        self._truncate_text,
     )
-
-    fig.update_xaxes(title_text=f"{dim_name} Dim 1", row=1, col=1)
-    fig.update_yaxes(title_text=f"{dim_name} Dim 2", row=1, col=1)
-    fig.update_xaxes(title_text=f"{dim_name} Dim 1", row=1, col=2)
-    fig.update_yaxes(title_text=f"{dim_name} Dim 2", row=1, col=2)
-
-    return fig
+    return builder.build_full_comparison(results_grid)

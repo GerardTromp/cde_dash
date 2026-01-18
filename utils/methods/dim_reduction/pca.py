@@ -33,6 +33,14 @@ class PCAMethod:
         """Return parameter schema for UI generation."""
         return {
             # Tier 2 - Important (PCA has fewer essential params)
+            "n_components": {
+                "type": "int",
+                "default": 2,
+                "min": 2,
+                "max": 50,
+                "description": "Number of principal components to keep",
+                "tier": 2,
+            },
             "whiten": {
                 "type": "bool",
                 "default": False,
