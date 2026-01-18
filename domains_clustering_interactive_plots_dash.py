@@ -42,6 +42,7 @@ from utils.run_analysis import (
     run_analysis_single,
     create_single_plot,
     create_comparison_plot,
+    create_clustering_comparison_plot,
 )
 
 warnings.filterwarnings("ignore")
@@ -102,6 +103,7 @@ class InteractiveClusteringAnalyzer:
     run_analysis_single = run_analysis_single
     create_single_plot = create_single_plot
     create_comparison_plot = create_comparison_plot
+    create_clustering_comparison_plot = create_clustering_comparison_plot
 
 
 def main():
