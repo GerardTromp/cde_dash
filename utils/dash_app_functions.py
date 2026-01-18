@@ -167,3 +167,93 @@ def config_to_dict(configuration) -> Dict:
                 config_dict[section][option] = value
 
     return config_dict
+
+
+def param_inputs_from_schema(
+    schema: Dict[str, Dict[str, Any]], method_id: str, current_params: Dict[str, Any]
+) -> dbc.Card:
+    """Build parameter input card from a method's schema.
+
+    Args:
+        schema: Parameter schema from method.param_schema()
+        method_id: Method identifier (e.g., "umap")
+        current_params: Current parameter values
+
+    Returns:
+        A dbc.Card containing labeled input fields for each parameter
+    """
+    rows = []
+    for param_name, spec in schema.items():
+        param_type = spec.get("type", "text")
+        default = spec.get("default")
+        description = spec.get("description", param_name)
+        current_value = current_params.get(param_name, default)
+
+        input_id = {"type": "param-input", "algo": method_id, "param": param_name}
+
+        if param_type == "select":
+            # Dropdown for select type
+            options = [{"label": str(opt), "value": opt} for opt in spec.get("options", [])]
+            input_element = dcc.Dropdown(
+                id=input_id,
+                options=options,
+                value=current_value,
+                clearable=False,
+                className="form-control",
+            )
+        elif param_type == "bool":
+            # Checkbox for boolean
+            input_element = dbc.Switch(
+                id=input_id,
+                value=bool(current_value),
+                className="mt-1",
+            )
+        elif param_type == "int":
+            # Number input for integers
+            input_element = dcc.Input(
+                id=input_id,
+                value=current_value,
+                type="number",
+                min=spec.get("min"),
+                max=spec.get("max"),
+                step=spec.get("step", 1),
+                className="form-control",
+            )
+        elif param_type == "float":
+            # Number input for floats
+            input_element = dcc.Input(
+                id=input_id,
+                value=current_value,
+                type="number",
+                min=spec.get("min"),
+                max=spec.get("max"),
+                step=spec.get("step", 0.01),
+                className="form-control",
+            )
+        else:
+            # Text input as fallback
+            input_element = dcc.Input(
+                id=input_id,
+                value=str(current_value) if current_value is not None else "",
+                type="text",
+                className="form-control",
+            )
+
+        rows.append(
+            dbc.Row(
+                [
+                    dbc.Col(
+                        html.Label(
+                            param_name,
+                            htmlFor=f"{method_id}-{param_name}",
+                            title=description,
+                        ),
+                        width=4,
+                    ),
+                    dbc.Col(input_element, width=8),
+                ],
+                className="mb-2",
+            )
+        )
+
+    return dbc.Card([dbc.CardBody(rows)], className="mt-2")

@@ -9,174 +9,178 @@ from dash import dcc, html, Input, Output, State, callback_context  # type: igno
 from typing import Dict, List, Tuple, Optional, Any
 from datetime import datetime
 from utils.functions import logger
-from utils.dash_app_functions import param_inputs
+from utils.dash_app_functions import param_inputs, param_inputs_from_schema
+from utils.methods import MethodRegistry
+from utils.export_params import export_params_yaml
 
 
 def create_dash_app(self) -> dash.Dash:
     app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
+
+    # Build model selection options
     models = self.embedding_models.keys()
-    model_options = []
-    for model in models:
-        print(model)
-        model_options.append({"label": model, "value": model})
-    value_option = model_options[0]["value"]
+    model_options = [{"label": model, "value": model} for model in models]
+    value_option = model_options[0]["value"] if model_options else None
+
+    # Build dimension reduction and clustering options from registry
+    dim_options = [
+        {"label": name, "value": mid}
+        for mid, name in MethodRegistry.list_dim_reduction().items()
+    ]
+    cluster_options = [
+        {"label": name, "value": mid}
+        for mid, name in MethodRegistry.list_clustering().items()
+    ]
+
     app.layout = dbc.Container(
         [
-            # fmt: off
-            dbc.Row(
-                [
-                    dbc.Col(
-                        [
-                            html.H1( "Interactive CDE Clustering Analysis", className="text-center mb-4",),
-                            html.Hr(),
-                        ]
-                    )
-                ]
-            ),
-            dbc.Row(
-                [
-                    dbc.Col(
-                        [
-                            dbc.Card(
-                                [
-                                    dbc.CardHeader("Model Selection"),
-                                    dbc.CardBody(
-                                        [
-                                            dbc.RadioItems( id="model-selector", options=model_options, value=value_option, inline=True,),
-                                            html.Div( id="model-status", className="mt-2"),
-                                        ]
-                                    ),
-                                ]
-                            )
-                        ]
-                    )
-                ],
-                className="mb-4",
-            ),
-            dbc.Row(
-                [
-                    dbc.Col(
-                        [
-                            dbc.Button(
-                                "Parameters",
-                                id="param-collapse-btn",
-                                color="secondary",
-                                size="sm",
-                                className="mb-2",
+            # Header
+            dbc.Row([
+                dbc.Col([
+                    html.H1("Interactive CDE Clustering Analysis", className="text-center mb-4"),
+                    html.Hr(),
+                ])
+            ]),
+            # Model Selection
+            dbc.Row([
+                dbc.Col([
+                    dbc.Card([
+                        dbc.CardHeader("Embedding Model Selection"),
+                        dbc.CardBody([
+                            dbc.RadioItems(
+                                id="model-selector",
+                                options=model_options,
+                                value=value_option,
+                                inline=True,
                             ),
-                            dbc.Collapse(
-                                dbc.Card(
-                                    [
-                                        dbc.CardHeader("Algorithm Parameters"),
-                                        dbc.CardBody(
-                                            [
-                                                dbc.Label("Select algorithms to configure:"),
-                                                dcc.Dropdown(
-                                                    id="algo-selector",
-                                                    options=[
-                                                        {"label": "UMAP", "value": "UMAP"},
-                                                        {"label": "t-SNE", "value": "TSNE"},
-                                                    ],
-                                                    value=["UMAP", "TSNE"],
-                                                    multi=True,
-                                                    className="mb-3",
-                                                ),
-                                                html.Div(id="param-ui"),
-                                                dbc.Button(
-                                                    "Re-run Analysis",
-                                                    id="rerun-btn",
-                                                    color="primary",
-                                                    className="mt-3",
-                                                ),
-                                                html.Div(id="debug-output", className="mt-2"),
-                                            ]
-                                        ),
-                                    ]
-                                ),
-                                id="param-collapse",
-                                is_open=False,
+                            html.Div(id="model-status", className="mt-2"),
+                        ]),
+                    ])
+                ])
+            ], className="mb-4"),
+            # Method Selection: Dimension Reduction and Clustering side-by-side
+            dbc.Row([
+                dbc.Col([
+                    dbc.Card([
+                        dbc.CardHeader("Dimension Reduction"),
+                        dbc.CardBody([
+                            dcc.Dropdown(
+                                id="dim-reduction-selector",
+                                options=dim_options,
+                                value="umap",
+                                clearable=False,
+                                className="mb-3",
                             ),
-                        ]
-                    )
-                ],
-                className="mb-4",
-            ),
-            dbc.Row(
-                [
-                    dbc.Col(
-                        [
-                            dbc.Card(
-                                [
-                                    dbc.CardHeader(
-                                        "Interactive Clustering Visualization"
-                                    ),
-                                    dbc.CardBody(
-                                        [
-                                            dcc.Graph(
-                                                id="clustering-plot",
-                                                style={"height": "700px"},
-                                                config={ "displayModeBar": True, "modeBarButtonsToAdd": [ "select2d", "lasso2d", "resetScale2d", ],
-                                                    "displaylogo": False,
-                                                },
-                                            )
-                                        ]
-                                    ),
-                                ]
+                            html.Div(id="dim-reduction-params"),
+                        ]),
+                    ])
+                ], width=6),
+                dbc.Col([
+                    dbc.Card([
+                        dbc.CardHeader("Clustering"),
+                        dbc.CardBody([
+                            dcc.Dropdown(
+                                id="clustering-selector",
+                                options=cluster_options,
+                                value="hdbscan",
+                                clearable=False,
+                                className="mb-3",
+                            ),
+                            html.Div(id="clustering-params"),
+                        ]),
+                    ])
+                ], width=6),
+            ], className="mb-4"),
+            # Comparison Mode Toggle
+            dbc.Row([
+                dbc.Col([
+                    dbc.Switch(
+                        id="comparison-mode-toggle",
+                        label="Compare two dimension reduction methods",
+                        value=False,
+                        className="mb-2",
+                    ),
+                    html.Div(
+                        id="secondary-dim-reduction-container",
+                        style={"display": "none"},
+                        children=[
+                            dbc.Label("Secondary Method:"),
+                            dcc.Dropdown(
+                                id="dim-reduction-selector-2",
+                                options=dim_options,
+                                value="tsne",
+                                clearable=False,
+                                className="mt-2",
+                            ),
+                        ],
+                    ),
+                ])
+            ], className="mb-2"),
+            # Action Row
+            dbc.Row([
+                dbc.Col([
+                    dbc.Button(
+                        "Run Analysis",
+                        id="run-analysis-btn",
+                        color="primary",
+                        className="me-2",
+                    ),
+                    dbc.Button(
+                        "Export Parameters (YAML)",
+                        id="export-params-btn",
+                        color="secondary",
+                    ),
+                    html.Div(id="param-sync-status", className="mt-2"),
+                ])
+            ], className="mb-4"),
+            # Visualization
+            dbc.Row([
+                dbc.Col([
+                    dbc.Card([
+                        dbc.CardHeader("Interactive Clustering Visualization"),
+                        dbc.CardBody([
+                            dcc.Graph(
+                                id="clustering-plot",
+                                style={"height": "700px"},
+                                config={
+                                    "displayModeBar": True,
+                                    "modeBarButtonsToAdd": ["select2d", "lasso2d", "resetScale2d"],
+                                    "displaylogo": False,
+                                },
                             )
-                        ]
-                    )
-                ],
-                className="mb-4",
-            ),
-            dbc.Row(
-                [
-                    dbc.Col(
-                        [
-                            dbc.Card(
-                                [
-                                    dbc.CardHeader("Data Export"),
-                                    dbc.CardBody(
-                                        [
-                                            dbc.Row(
-                                                [
-                                                    dbc.Col(
-                                                        [
-                                                            html.P( "Select data points using lasso or box selection tools above, then export:"),
-                                                            html.Div( id="selection-info", className="mb-3",),
-                                                        ]
-                                                    )
-                                                ]
-                                            ),
-                                            dbc.Row(
-                                                [
-                                                    dbc.Col(
-                                                        [
-                                                            dbc.Button( "Export to JSON", id="export-json-btn", color="primary", className="me-2",),
-                                                            dbc.Button( "Export to CSV", id="export-csv-btn", color="success", className="me-2",),
-                                                            dbc.Button( "Copy to Clipboard", id="copy-clipboard-btn", color="info",),
-                                                        ]
-                                                    )
-                                                ]
-                                            ),
-                                            dbc.Row(
-                                                [
-                                                    dbc.Col(
-                                                        [
-                                                            html.Div( id="export-status", className="mt-3",
-                                                            )
-                                                        ]
-                                                    )
-                                                ]
-                                            ),
-                                        ]
-                                    ),
-                                ]
-                            )
-                        ]
-                    )
-                ]
-            ),
-            # fmt: on
+                        ]),
+                    ])
+                ])
+            ], className="mb-4"),
+            # Data Export
+            dbc.Row([
+                dbc.Col([
+                    dbc.Card([
+                        dbc.CardHeader("Data Export"),
+                        dbc.CardBody([
+                            dbc.Row([
+                                dbc.Col([
+                                    html.P("Select data points using lasso or box selection tools above, then export:"),
+                                    html.Div(id="selection-info", className="mb-3"),
+                                ])
+                            ]),
+                            dbc.Row([
+                                dbc.Col([
+                                    dbc.Button("Export to JSON", id="export-json-btn", color="primary", className="me-2"),
+                                    dbc.Button("Export to CSV", id="export-csv-btn", color="success", className="me-2"),
+                                    dbc.Button("Copy to Clipboard", id="copy-clipboard-btn", color="info"),
+                                ])
+                            ]),
+                            dbc.Row([
+                                dbc.Col([
+                                    html.Div(id="export-status", className="mt-3"),
+                                ])
+                            ]),
+                        ]),
+                    ])
+                ])
+            ]),
+            # Hidden stores
             html.Div(id="selected-data-store", style={"display": "none"}),
             html.Div(id="current-model-store", style={"display": "none"}),
         ],
@@ -192,58 +196,182 @@ def setup_callbacks(self):
         logger.error("Dash app not initialized")
         return
 
+    # --- Callback: update model status badge ---
+    @self.app.callback(
+        Output("model-status", "children"),
+        [Input("model-selector", "value")]
+    )
+    def update_model_status(selected_model):
+        """Update model status badge when selection changes."""
+        return dbc.Alert(
+            f"{selected_model} loaded"
+            if selected_model in self.embedding_models
+            else f"{selected_model} unavailable",
+            color="success" if selected_model in self.embedding_models else "danger",
+        )
+
+    # --- Callback: render dimension reduction parameters ---
+    @self.app.callback(
+        Output("dim-reduction-params", "children"),
+        Input("dim-reduction-selector", "value"),
+    )
+    def update_dim_params(method_id):
+        """Render parameter inputs for selected dimension reduction method."""
+        if not method_id:
+            return []
+        method_class = MethodRegistry.get_dim_reduction(method_id)
+        schema = method_class.param_schema()
+        # Get current params or use defaults
+        current = getattr(self, f"{method_id}_params", None)
+        if current is None:
+            current = method_class.default_params()
+            setattr(self, f"{method_id}_params", current.copy())
+        return param_inputs_from_schema(schema, method_id, current)
+
+    # --- Callback: render clustering parameters ---
+    @self.app.callback(
+        Output("clustering-params", "children"),
+        Input("clustering-selector", "value"),
+    )
+    def update_clustering_params(method_id):
+        """Render parameter inputs for selected clustering method."""
+        if not method_id:
+            return []
+        method_class = MethodRegistry.get_clustering(method_id)
+        schema = method_class.param_schema()
+        # Get current params or use defaults
+        current = getattr(self, f"{method_id}_params", None)
+        if current is None:
+            current = method_class.default_params()
+            setattr(self, f"{method_id}_params", current.copy())
+        return param_inputs_from_schema(schema, method_id, current)
+
+    # --- Callback: toggle comparison mode ---
+    @self.app.callback(
+        Output("secondary-dim-reduction-container", "style"),
+        Input("comparison-mode-toggle", "value"),
+    )
+    def toggle_comparison_mode(compare_enabled):
+        """Show/hide secondary dimension reduction selector."""
+        if compare_enabled:
+            return {"display": "block"}
+        return {"display": "none"}
+
+    # --- Callback: sync parameter values on input change ---
+    @self.app.callback(
+        Output("param-sync-status", "children"),
+        Input({"type": "param-input", "algo": dash.ALL, "param": dash.ALL}, "value"),
+        State({"type": "param-input", "algo": dash.ALL, "param": dash.ALL}, "id"),
+        prevent_initial_call=True,
+    )
+    def sync_params(values, ids):
+        """Update parameter dicts when user edits input fields."""
+        from utils.dash_app_functions import auto_cast
+        for v, id_dict in zip(values, ids):
+            method_id = id_dict["algo"]
+            param = id_dict["param"]
+            # Initialize params dict if it doesn't exist
+            params_attr = f"{method_id}_params"
+            if not hasattr(self, params_attr) or getattr(self, params_attr) is None:
+                # Get defaults from registry
+                try:
+                    method_class = MethodRegistry.get_dim_reduction(method_id)
+                except KeyError:
+                    method_class = MethodRegistry.get_clustering(method_id)
+                setattr(self, params_attr, method_class.default_params().copy())
+            # Update the parameter
+            getattr(self, params_attr)[param] = auto_cast(v)
+        return dbc.Alert("Parameters updated", color="info", duration=2000)
+
+    # --- Callback: run analysis with selected methods ---
     @self.app.callback(
         [
             Output("clustering-plot", "figure"),
             Output("current-model-store", "children"),
         ],
-        [Input("model-selector", "value")],
+        Input("run-analysis-btn", "n_clicks"),
+        State("model-selector", "value"),
+        State("dim-reduction-selector", "value"),
+        State("clustering-selector", "value"),
+        State("comparison-mode-toggle", "value"),
+        State("dim-reduction-selector-2", "value"),
+        prevent_initial_call=True,
     )
-    def update_plot(selected_model):
-        """Update plot based on model selection"""
-        print(f"Generating plot for {selected_model}...")
-        if selected_model not in self.embedding_models:
+    def run_selected_analysis(n_clicks, model, dim_method, cluster_method, compare_mode, dim_method_2):
+        """Run analysis with the selected methods."""
+        if not n_clicks or not model:
+            return dash.no_update, dash.no_update
+
+        print(f"Running analysis: model={model}, dim={dim_method}, cluster={cluster_method}, compare={compare_mode}")
+
+        if model not in self.embedding_models:
             empty_fig = go.Figure()
             empty_fig.add_annotation(
-                text=f"Model '{selected_model}' not available.",
-                xref="paper",
-                yref="paper",
-                x=0.5,
-                y=0.5,
-                showarrow=False,
-                font=dict(size=14, color="red"),
+                text=f"Model '{model}' not available.",
+                xref="paper", yref="paper", x=0.5, y=0.5,
+                showarrow=False, font=dict(size=14, color="red"),
             )
-            empty_fig.update_layout(
-                title=f"Model Not Available: {selected_model}",
-                width=800,
-                height=400,
-            )
-            return empty_fig, selected_model
-        if selected_model not in self.analysis_results:
-            results = self.run_analysis(selected_model)
+            return empty_fig, model
+
+        # Clear cached results
+        cache_key = f"{model}_{dim_method}_{cluster_method}"
+        if cache_key in self.analysis_results:
+            del self.analysis_results[cache_key]
+
+        if compare_mode and dim_method_2 and dim_method_2 != dim_method:
+            # Run comparison mode - both methods
+            results1 = self.run_analysis_single(model, dim_method, cluster_method)
+            results2 = self.run_analysis_single(model, dim_method_2, cluster_method)
+            if results1 and results2:
+                fig = self.create_comparison_plot(results1, results2)
+                return fig, model
+        else:
+            # Single method mode
+            results = self.run_analysis_single(model, dim_method, cluster_method)
             if results:
-                self.analysis_results[selected_model] = results
-                figures = self.create_faceted_plots(results)
-                if figures:
-                    print(f"Plot generated for {selected_model}")
-                    return figures[0], selected_model
-        if selected_model in self.analysis_results:
-            figures = self.create_faceted_plots(self.analysis_results[selected_model])
-            if figures:
-                print(f"Plot generated for {selected_model}")
-                return figures[0], selected_model
+                fig = self.create_single_plot(results)
+                return fig, model
+
+        # Fallback empty plot
         empty_fig = go.Figure()
         empty_fig.add_annotation(
             text="No data available",
-            xref="paper",
-            yref="paper",
-            x=0.5,
-            y=0.5,
-            showarrow=False,
+            xref="paper", yref="paper", x=0.5, y=0.5, showarrow=False,
         )
-        print(f"No data for {selected_model}")
-        return empty_fig, selected_model
+        return empty_fig, model
 
+    # --- Callback: export parameters to YAML ---
+    @self.app.callback(
+        Output("param-sync-status", "children", allow_duplicate=True),
+        Input("export-params-btn", "n_clicks"),
+        State("dim-reduction-selector", "value"),
+        State("clustering-selector", "value"),
+        State("model-selector", "value"),
+        prevent_initial_call=True,
+    )
+    def export_params(n_clicks, dim_method, cluster_method, model):
+        """Export current parameters to YAML file."""
+        if not n_clicks:
+            return dash.no_update
+
+        # Get current params
+        dim_params = getattr(self, f"{dim_method}_params", {})
+        cluster_params = getattr(self, f"{cluster_method}_params", {})
+
+        try:
+            filepath = export_params_yaml(
+                dim_method=dim_method,
+                dim_params=dim_params,
+                cluster_method=cluster_method,
+                cluster_params=cluster_params,
+                model_name=model,
+            )
+            return dbc.Alert(f"Parameters exported to {filepath}", color="success", duration=4000)
+        except Exception as e:
+            logger.error(f"Error exporting params: {e}")
+            return dbc.Alert(f"Export failed: {str(e)}", color="danger")
+
+    # --- Callback: update selection info ---
     @self.app.callback(
         [
             Output("selection-info", "children"),
@@ -272,6 +400,7 @@ def setup_callbacks(self):
         ]
         return f"Selected {len(points)} data point(s)", json.dumps(selected_data_list)
 
+    # --- Callback: handle data export ---
     @self.app.callback(
         Output("export-status", "children"),
         [
@@ -284,9 +413,7 @@ def setup_callbacks(self):
             State("current-model-store", "children"),
         ],
     )
-    def handle_export(
-        json_clicks, csv_clicks, clipboard_clicks, selected_data_json, current_model
-    ):
+    def handle_export(json_clicks, csv_clicks, clipboard_clicks, selected_data_json, current_model):
         """Handle data export."""
         ctx = callback_context
         if not ctx.triggered or not selected_data_json:
@@ -301,9 +428,7 @@ def setup_callbacks(self):
                 return dbc.Alert(f"Data exported to {filename}", color="success")
             elif ctx.triggered[0]["prop_id"].split(".")[0] == "export-csv-btn":
                 filename = f"selected_cdes_{current_model}_{timestamp}.csv"
-                pd.DataFrame(selected_data).to_csv(
-                    filename, index=False, encoding="utf-8"
-                )
+                pd.DataFrame(selected_data).to_csv(filename, index=False, encoding="utf-8")
                 return dbc.Alert(f"Data exported to {filename}", color="success")
             elif ctx.triggered[0]["prop_id"].split(".")[0] == "copy-clipboard-btn":
                 pyperclip.copy(self._format_clipboard_data(selected_data))
@@ -313,100 +438,20 @@ def setup_callbacks(self):
             return dbc.Alert(f"Export failed: {str(e)}", color="danger")
         return ""
 
-    # --- Callback: update model status badge ---
-    @self.app.callback(
-        Output("model-status", "children"),
-        [Input("model-selector", "value")]
-    )
-    def update_model_status(selected_model):
-        """Update model status badge when selection changes."""
-        return dbc.Alert(
-            f" {selected_model} loaded"
-            if selected_model in self.embedding_models
-            else f" {selected_model} unavailable",
-            color="success" if selected_model in self.embedding_models else "danger",
-        )
-
-    # --- Callback: toggle parameter panel visibility ---
-    @self.app.callback(
-        Output("param-collapse", "is_open"),
-        Input("param-collapse-btn", "n_clicks"),
-        State("param-collapse", "is_open"),
-        prevent_initial_call=True,
-    )
-    def toggle_param_collapse(n_clicks, is_open):
-        """Toggle parameter panel visibility."""
-        return not is_open
-
-    # --- Callback: render parameter UIs ---
-    @self.app.callback(
-        Output("param-ui", "children"),
-        Input("algo-selector", "value")
-    )
-    def update_params(algos):
-        """Render parameter input cards for selected algorithms."""
-        if not algos:
-            return []
-        param_sets = {"UMAP": self.umap_params, "TSNE": self.tsne_params}
-        return [param_inputs(param_sets[a], a) for a in algos if a in param_sets]
-
-    # --- Callback: sync parameter values on input change ---
-    @self.app.callback(
-        Output("debug-output", "children"),
-        Input({"type": "param-input", "algo": dash.ALL, "param": dash.ALL}, "value"),
-        State({"type": "param-input", "algo": dash.ALL, "param": dash.ALL}, "id"),
-        prevent_initial_call=True,
-    )
-    def sync_params(values, ids):
-        """Update parameter dicts when user edits input fields."""
-        from utils.dash_app_functions import auto_cast
-        for v, id_dict in zip(values, ids):
-            algo = id_dict["algo"]
-            param = id_dict["param"]
-            if algo == "UMAP":
-                self.umap_params[param] = auto_cast(v)
-            elif algo == "TSNE":
-                self.tsne_params[param] = auto_cast(v)
-        return dbc.Alert("Parameters updated", color="info", duration=2000)
-
-    # --- Callback: re-run analysis with updated parameters ---
-    @self.app.callback(
-        Output("clustering-plot", "figure", allow_duplicate=True),
-        Input("rerun-btn", "n_clicks"),
-        State("model-selector", "value"),
-        prevent_initial_call=True,
-    )
-    def rerun_analysis(n_clicks, selected_model):
-        """Clear cache and re-run analysis with updated parameters."""
-        if n_clicks and selected_model:
-            # Invalidate cached results
-            if selected_model in self.analysis_results:
-                del self.analysis_results[selected_model]
-            # Re-run analysis (will use updated params)
-            results = self.run_analysis(selected_model)
-            if results:
-                self.analysis_results[selected_model] = results
-                figures = self.create_faceted_plots(results)
-                if figures:
-                    return figures[0]
-        return dash.no_update
-
     def _format_clipboard_data(self, selected_data: List[Dict]) -> str:
         if not selected_data:
             return "No data selected"
         lines = ["Selected CDE Data", "=" * 50, ""]
         for i, item in enumerate(selected_data, 1):
-            lines.extend(
-                [
-                    f"CDE {i}:",
-                    f"  Tiny ID: {item.get('tiny_id', 'N/A')}",
-                    f"  Domain: {item.get('domain', 'N/A')}",
-                    f"  Cluster: {item.get('cluster', 'N/A')}",
-                    f"  Name: {item.get('name', 'N/A')}",
-                    f"  Question: {item.get('question', 'N/A')}",
-                    f"  Definition: {item.get('definition', 'N/A')}",
-                    f"  Coordinates: ({item.get('x', 'N/A'):.3f}, {item.get('y', 'N/A'):.3f})",
-                    "",
-                ]
-            )
+            lines.extend([
+                f"CDE {i}:",
+                f"  Tiny ID: {item.get('tinyid', 'N/A')}",
+                f"  Domain: {item.get('domain', 'N/A')}",
+                f"  Cluster: {item.get('cluster', 'N/A')}",
+                f"  Name: {item.get('name', 'N/A')}",
+                f"  Question: {item.get('question', 'N/A')}",
+                f"  Definition: {item.get('definition', 'N/A')}",
+                f"  Coordinates: ({item.get('x', 'N/A'):.3f}, {item.get('y', 'N/A'):.3f})",
+                "",
+            ])
         return "\n".join(lines)

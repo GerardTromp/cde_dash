@@ -40,7 +40,13 @@ def extract_text_fields(self, df: pd.DataFrame) -> pd.DataFrame:
     processed_df["combined_text"] = ""
     processed_df["domain"] = ""
 
-    for idx in tqdm(range(len(processed_df)), desc="Processing CDEs"):
+    # Use tqdm only if show_progress is enabled (default True)
+    show_progress = getattr(self, "show_progress", True)
+    iterator = range(len(processed_df))
+    if show_progress:
+        iterator = tqdm(iterator, desc="Processing CDEs")
+
+    for idx in iterator:
         row = processed_df.iloc[idx]
         name = next(
             (

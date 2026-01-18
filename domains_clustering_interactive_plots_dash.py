@@ -39,6 +39,9 @@ from utils.run_analysis import (
     apply_clustering,
     apply_dimensionality_reduction,
     evaluate_clustering,
+    run_analysis_single,
+    create_single_plot,
+    create_comparison_plot,
 )
 
 warnings.filterwarnings("ignore")
@@ -95,6 +98,9 @@ class InteractiveClusteringAnalyzer:
     apply_clustering = apply_clustering
     apply_dimensionality_reduction = apply_dimensionality_reduction
     create_faceted_plots = create_faceted_plots
+    run_analysis_single = run_analysis_single
+    create_single_plot = create_single_plot
+    create_comparison_plot = create_comparison_plot
 
 
 def main():
@@ -103,6 +109,9 @@ def main():
     analyzer = InteractiveClusteringAnalyzer(
         # hdbscan_min_cluster_size=15, hdbscan_min_samples=5
     )
+    # Set progress bar visibility (--no-progress disables it)
+    analyzer.show_progress = not args.no_progress
+
     config = load_configs(path=args.config_path)
     if len(config) == 0:
         print("Error: could not load configs")

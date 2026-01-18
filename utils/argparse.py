@@ -58,6 +58,12 @@ def cde_argparse():
         default=8050,
         help="port on which to run the application. ",
     )
+    parser.add_argument(
+        "--no-progress",
+        action="store_true",
+        default=False,
+        help="Disable progress bars (useful for background execution with output redirection)",
+    )
 
     args = parser.parse_args()
 
