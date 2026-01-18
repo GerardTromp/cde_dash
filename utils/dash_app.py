@@ -85,6 +85,8 @@ def create_dash_app(self) -> dash.Dash:
                     dbc.Card([
                         dbc.CardHeader("Clustering"),
                         dbc.CardBody([
+                            # Primary clustering method
+                            dbc.Label("Primary Method", className="fw-bold"),
                             dcc.Dropdown(
                                 id="clustering-selector",
                                 options=cluster_options,
@@ -93,6 +95,29 @@ def create_dash_app(self) -> dash.Dash:
                                 className="mb-3",
                             ),
                             html.Div(id="clustering-params"),
+                            # Secondary clustering toggle and dropdown
+                            html.Hr(className="my-3"),
+                            dbc.Switch(
+                                id="clustering-compare-toggle",
+                                label="Compare two clustering methods",
+                                value=False,
+                                className="mb-2",
+                            ),
+                            html.Div(
+                                id="secondary-clustering-container",
+                                style={"display": "none"},
+                                children=[
+                                    dbc.Label("Secondary Method", className="fw-bold"),
+                                    dcc.Dropdown(
+                                        id="clustering-selector-2",
+                                        options=cluster_options,
+                                        value="kmeans",
+                                        clearable=False,
+                                        className="mb-3",
+                                    ),
+                                    html.Div(id="clustering-params-2"),
+                                ],
+                            ),
                         ]),
                     ])
                 ], width=6),
@@ -263,6 +288,35 @@ def setup_callbacks(self):
             return {"display": "block"}
         return {"display": "none"}
 
+    # --- Callback: toggle clustering comparison mode ---
+    @self.app.callback(
+        Output("secondary-clustering-container", "style"),
+        Input("clustering-compare-toggle", "value"),
+    )
+    def toggle_clustering_comparison(compare_enabled):
+        """Show/hide secondary clustering method selector."""
+        if compare_enabled:
+            return {"display": "block"}
+        return {"display": "none"}
+
+    # --- Callback: render secondary clustering parameters ---
+    @self.app.callback(
+        Output("clustering-params-2", "children"),
+        Input("clustering-selector-2", "value"),
+    )
+    def update_clustering_params_2(method_id):
+        """Render tiered parameter inputs for secondary clustering method."""
+        if not method_id:
+            return []
+        method_class = MethodRegistry.get_clustering(method_id)
+        schema = method_class.param_schema()
+        # Get current params or use defaults
+        current = getattr(self, f"{method_id}_params", None)
+        if current is None:
+            current = method_class.default_params()
+            setattr(self, f"{method_id}_params", current.copy())
+        return create_tiered_param_section(schema, method_id, current, category="clustering")
+
     # --- Callback: sync dimension reduction parameter values on input change ---
     @self.app.callback(
         Output("param-sync-status", "children"),
@@ -375,14 +429,21 @@ def setup_callbacks(self):
         State("clustering-selector", "value"),
         State("comparison-mode-toggle", "value"),
         State("dim-reduction-selector-2", "value"),
+        State("clustering-compare-toggle", "value"),
+        State("clustering-selector-2", "value"),
         prevent_initial_call=True,
     )
-    def run_selected_analysis(n_clicks, model, dim_method, cluster_method, compare_mode, dim_method_2):
+    def run_selected_analysis(
+        n_clicks, model, dim_method, cluster_method,
+        dim_compare_mode, dim_method_2,
+        cluster_compare_mode, cluster_method_2,
+    ):
         """Run analysis with the selected methods."""
         if not n_clicks or not model:
             return dash.no_update, dash.no_update
 
-        print(f"Running analysis: model={model}, dim={dim_method}, cluster={cluster_method}, compare={compare_mode}")
+        print(f"Running analysis: model={model}, dim={dim_method}, cluster={cluster_method}")
+        print(f"  dim_compare={dim_compare_mode}, cluster_compare={cluster_compare_mode}")
 
         if model not in self.embedding_models:
             empty_fig = go.Figure()
@@ -398,12 +459,21 @@ def setup_callbacks(self):
         if cache_key in self.analysis_results:
             del self.analysis_results[cache_key]
 
-        if compare_mode and dim_method_2 and dim_method_2 != dim_method:
-            # Run comparison mode - both methods
+        # Determine which comparison mode is active
+        # Priority: dim reduction comparison > clustering comparison > single mode
+        if dim_compare_mode and dim_method_2 and dim_method_2 != dim_method:
+            # Dimension reduction comparison mode (original behavior)
             results1 = self.run_analysis_single(model, dim_method, cluster_method)
             results2 = self.run_analysis_single(model, dim_method_2, cluster_method)
             if results1 and results2:
                 fig = self.create_comparison_plot(results1, results2)
+                return fig, model
+        elif cluster_compare_mode and cluster_method_2 and cluster_method_2 != cluster_method:
+            # Clustering comparison mode - same dim reduction, different clustering
+            results1 = self.run_analysis_single(model, dim_method, cluster_method)
+            results2 = self.run_analysis_single(model, dim_method, cluster_method_2)
+            if results1 and results2:
+                fig = self.create_clustering_comparison_plot(results1, results2)
                 return fig, model
         else:
             # Single method mode

@@ -1,8 +1,8 @@
 # Parameter UI Expansion - Phased Implementation Plan
 
 **Created**: 2026-01-18
-**Status**: Phase 4 Complete
-**Last Commit**: `0ae0a0f` (Phase 4)
+**Status**: Phase 5 Complete
+**Last Commit**: `f18b5d0` (Phase 5)
 **Reference**: `../Claude_WireframeDescription.md`, `../Wireframe_clusterAppMethodsParameters.zip`
 
 ## Overview
@@ -104,15 +104,25 @@ Tasks:
 
 ---
 
-### Phase 5: Second Clustering Method
+### Phase 5: Second Clustering Method ✅ COMPLETE
 **Scope**: Add second clustering method selector with parameters
-**Files**: `utils/dash_app.py`, `utils/dash_app_functions.py`, `utils/run_analysis.py`
+**Files**: `utils/dash_app.py`, `utils/run_analysis.py`
 
 Tasks:
-- [ ] Add second clustering method dropdown
-- [ ] Add parameter section for second clustering method
-- [ ] Update analysis pipeline to support two clustering methods
-- [ ] Update plot functions for dual clustering display
+- [x] Add second clustering method dropdown
+- [x] Add parameter section for second clustering method
+- [x] Update analysis pipeline to support two clustering methods
+- [x] Update plot functions for dual clustering display
+
+**Changes Made**:
+- Added `clustering-compare-toggle` switch and `clustering-selector-2` dropdown to layout
+- Added `clustering-params-2` div for secondary clustering parameters
+- Added `toggle_clustering_comparison()` callback to show/hide secondary clustering UI
+- Added `update_clustering_params_2()` callback to render secondary clustering parameters
+- Updated `run_selected_analysis()` callback to accept `cluster_compare_mode` and `cluster_method_2` states
+- Added logic to prioritize dim_compare > cluster_compare > single mode
+- Created `create_clustering_comparison_plot()` in `run_analysis.py` for dual clustering visualization
+- Existing pattern-matching callbacks already handle secondary clustering (same `clustering-param` type)
 
 **Checkpoint**: Can be compacted after Phase 5
 

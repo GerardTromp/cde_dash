@@ -470,3 +470,124 @@ def create_comparison_plot(self, results1: Dict[str, Any], results2: Dict[str, A
     fig.update_yaxes(title_text=f"{name2} Dim 2", row=1, col=2)
 
     return fig
+
+
+def create_clustering_comparison_plot(self, results1: Dict[str, Any], results2: Dict[str, Any]) -> go.Figure:
+    """Create a side-by-side comparison plot of two clustering methods.
+
+    Both results use the same dimension reduction, so embeddings are identical.
+    The subplots show how different clustering algorithms partition the same embedding space.
+
+    Args:
+        results1: Results from first clustering method
+        results2: Results from second clustering method
+
+    Returns:
+        Plotly Figure with two subplots
+    """
+    if not results1 or not results2:
+        fig = go.Figure()
+        fig.add_annotation(text="Comparison data unavailable", xref="paper", yref="paper", x=0.5, y=0.5, showarrow=False)
+        return fig
+
+    df = results1["filtered_cdes"]
+    # Both use the same embeddings (same dim reduction method)
+    vis_embeddings = results1["visualization_embeddings"]
+    labels1 = results1["cluster_labels"]
+    labels2 = results2["cluster_labels"]
+    dim_name = results1["dim_reduction_name"]
+    cluster_name1 = results1["clustering_name"]
+    cluster_name2 = results2["clustering_name"]
+    metrics1 = results1["metrics"]
+    metrics2 = results2["metrics"]
+
+    fig = make_subplots(
+        rows=1, cols=2,
+        subplot_titles=[
+            f"{cluster_name1} | Clusters: {metrics1['n_clusters']} | Silhouette: {metrics1['silhouette_score']:.3f}",
+            f"{cluster_name2} | Clusters: {metrics2['n_clusters']} | Silhouette: {metrics2['silhouette_score']:.3f}",
+        ],
+        horizontal_spacing=0.08,
+    )
+
+    domains = df["domain"].unique()
+    colors = self.d3_colors
+
+    for i, domain in enumerate(domains):
+        mask = df["domain"] == domain
+        indices = np.where(mask)[0]
+        color = colors[i % len(colors)]
+
+        # Helper to build hover text
+        def build_hover(idx, labels, cluster_name):
+            return (
+                f"<b>{df.iloc[idx]['name']}</b><br>"
+                f"Domain: {domain}<br>"
+                f"{cluster_name} Cluster: {labels[idx]}<br>"
+                f"Question: {self._truncate_text(df.iloc[idx].get('question', ''), 50)}<br>"
+                f"Definition: {self._truncate_text(df.iloc[idx].get('definition', ''), 50)}"
+            )
+
+        def build_customdata(idx, labels):
+            return [
+                df.iloc[idx].get("tinyId", "N/A"),
+                int(labels[idx]),
+                df.iloc[idx].get("name", "N/A"),
+                df.iloc[idx].get("question", "N/A"),
+                df.iloc[idx].get("definition", "N/A"),
+            ]
+
+        # Left subplot (clustering method 1)
+        fig.add_trace(
+            go.Scatter(
+                x=vis_embeddings[mask, 0],
+                y=vis_embeddings[mask, 1],
+                mode="markers",
+                name=domain,
+                legendgroup=domain,
+                showlegend=True,
+                marker=dict(color=color, size=7, opacity=0.7),
+                text=[build_hover(idx, labels1, cluster_name1) for idx in indices],
+                hoverinfo="text",
+                customdata=[build_customdata(idx, labels1) for idx in indices],
+            ),
+            row=1, col=1,
+        )
+
+        # Right subplot (clustering method 2)
+        fig.add_trace(
+            go.Scatter(
+                x=vis_embeddings[mask, 0],
+                y=vis_embeddings[mask, 1],
+                mode="markers",
+                name=domain,
+                legendgroup=domain,
+                showlegend=False,
+                marker=dict(color=color, size=7, opacity=0.7),
+                text=[build_hover(idx, labels2, cluster_name2) for idx in indices],
+                hoverinfo="text",
+                customdata=[build_customdata(idx, labels2) for idx in indices],
+            ),
+            row=1, col=2,
+        )
+
+    fig.update_layout(
+        title=f"Clustering Comparison: {cluster_name1} vs {cluster_name2} ({dim_name} embedding)",
+        showlegend=True,
+        legend=dict(
+            yanchor="top",
+            y=0.99,
+            xanchor="left",
+            x=1.02,
+            title="Domains",
+        ),
+        height=700,
+        hovermode="closest",
+    )
+
+    fig.update_xaxes(title_text=f"{dim_name} Dim 1", row=1, col=1)
+    fig.update_yaxes(title_text=f"{dim_name} Dim 2", row=1, col=1)
+    fig.update_xaxes(title_text=f"{dim_name} Dim 1", row=1, col=2)
+    fig.update_yaxes(title_text=f"{dim_name} Dim 2", row=1, col=2)
+
+    return fig
