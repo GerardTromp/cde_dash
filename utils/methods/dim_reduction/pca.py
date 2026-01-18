@@ -23,6 +23,8 @@ class PCAMethod:
             "n_components": 2,
             "whiten": False,
             "svd_solver": "auto",
+            "tol": 0.0,
+            "iterated_power": 2,
             "random_state": 42,
         }
 
@@ -30,16 +32,37 @@ class PCAMethod:
     def param_schema() -> Dict[str, Dict[str, Any]]:
         """Return parameter schema for UI generation."""
         return {
+            # Tier 2 - Important (PCA has fewer essential params)
             "whiten": {
                 "type": "bool",
                 "default": False,
-                "description": "Normalize components to unit variance",
+                "description": "Normalize components to unit variance (useful before clustering)",
+                "tier": 2,
             },
             "svd_solver": {
                 "type": "select",
                 "default": "auto",
                 "options": ["auto", "full", "arpack", "randomized"],
-                "description": "SVD solver algorithm",
+                "description": "SVD solver ('randomized' faster for large data)",
+                "tier": 2,
+            },
+            # Tier 3 - Advanced
+            "tol": {
+                "type": "float",
+                "default": 0.0,
+                "min": 0.0,
+                "max": 1.0,
+                "step": 0.001,
+                "description": "Tolerance for singular values (arpack solver only)",
+                "tier": 3,
+            },
+            "iterated_power": {
+                "type": "int",
+                "default": 2,
+                "min": 0,
+                "max": 10,
+                "description": "Number of iterations for randomized solver",
+                "tier": 3,
             },
         }
 
@@ -66,6 +89,8 @@ class PCAMethod:
             n_components=full_params["n_components"],
             whiten=full_params["whiten"],
             svd_solver=full_params["svd_solver"],
+            tol=full_params["tol"],
+            iterated_power=full_params["iterated_power"],
             random_state=full_params["random_state"],
         )
         return pca.fit_transform(scaled)

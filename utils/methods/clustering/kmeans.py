@@ -23,6 +23,8 @@ class KMeansMethod:
             "init": "k-means++",
             "n_init": 10,
             "max_iter": 300,
+            "tol": 1e-4,
+            "algorithm": "lloyd",
             "random_state": 42,
         }
 
@@ -30,18 +32,22 @@ class KMeansMethod:
     def param_schema() -> Dict[str, Dict[str, Any]]:
         """Return parameter schema for UI generation."""
         return {
+            # Tier 1 - Essential (always visible)
             "n_clusters": {
                 "type": "int",
                 "default": 8,
                 "min": 2,
-                "max": 50,
-                "description": "Number of clusters to form",
+                "max": 200,
+                "description": "Number of clusters to form (set high for many small clusters)",
+                "tier": 1,
             },
+            # Tier 2 - Important (expandable)
             "init": {
                 "type": "select",
                 "default": "k-means++",
                 "options": ["k-means++", "random"],
-                "description": "Initialization method for centroids",
+                "description": "Initialization method (k-means++ essential with many clusters)",
+                "tier": 2,
             },
             "n_init": {
                 "type": "int",
@@ -49,7 +55,9 @@ class KMeansMethod:
                 "min": 1,
                 "max": 50,
                 "description": "Number of initializations to run",
+                "tier": 2,
             },
+            # Tier 3 - Advanced (nested under Tier 2)
             "max_iter": {
                 "type": "int",
                 "default": 300,
@@ -57,6 +65,23 @@ class KMeansMethod:
                 "max": 1000,
                 "step": 100,
                 "description": "Maximum iterations per initialization",
+                "tier": 3,
+            },
+            "tol": {
+                "type": "float",
+                "default": 1e-4,
+                "min": 1e-6,
+                "max": 1e-2,
+                "step": 1e-5,
+                "description": "Convergence tolerance",
+                "tier": 3,
+            },
+            "algorithm": {
+                "type": "select",
+                "default": "lloyd",
+                "options": ["lloyd", "elkan"],
+                "description": "Algorithm ('elkan' faster for well-separated clusters)",
+                "tier": 3,
             },
         }
 
@@ -82,6 +107,8 @@ class KMeansMethod:
             init=full_params["init"],
             n_init=full_params["n_init"],
             max_iter=full_params["max_iter"],
+            tol=full_params["tol"],
+            algorithm=full_params["algorithm"],
             random_state=full_params["random_state"],
         )
         labels = clusterer.fit_predict(embeddings)

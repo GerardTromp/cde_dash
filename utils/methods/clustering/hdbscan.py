@@ -21,20 +21,24 @@ class HDBSCANMethod:
         return {
             "min_cluster_size": 15,
             "min_samples": 5,
-            "metric": "euclidean",
             "cluster_selection_method": "eom",
+            "cluster_selection_epsilon": 0.0,
+            "metric": "euclidean",
+            "alpha": 1.0,
         }
 
     @staticmethod
     def param_schema() -> Dict[str, Dict[str, Any]]:
         """Return parameter schema for UI generation."""
         return {
+            # Tier 1 - Essential (always visible)
             "min_cluster_size": {
                 "type": "int",
                 "default": 15,
                 "min": 2,
                 "max": 100,
-                "description": "Minimum cluster size",
+                "description": "Minimum cluster size (lower = more small clusters)",
+                "tier": 1,
             },
             "min_samples": {
                 "type": "int",
@@ -42,18 +46,42 @@ class HDBSCANMethod:
                 "min": 1,
                 "max": 50,
                 "description": "Minimum samples in neighborhood for core points",
+                "tier": 1,
             },
+            # Tier 2 - Important (expandable)
+            "cluster_selection_method": {
+                "type": "select",
+                "default": "eom",
+                "options": ["eom", "leaf"],
+                "description": "Selection method ('leaf' better for many small clusters)",
+                "tier": 2,
+                "highlight": True,
+            },
+            "cluster_selection_epsilon": {
+                "type": "float",
+                "default": 0.0,
+                "min": 0.0,
+                "max": 1.0,
+                "step": 0.05,
+                "description": "Distance threshold for cluster merging",
+                "tier": 2,
+            },
+            # Tier 3 - Advanced (nested under Tier 2)
             "metric": {
                 "type": "select",
                 "default": "euclidean",
                 "options": ["euclidean", "manhattan", "cosine"],
                 "description": "Distance metric",
+                "tier": 3,
             },
-            "cluster_selection_method": {
-                "type": "select",
-                "default": "eom",
-                "options": ["eom", "leaf"],
-                "description": "Cluster selection method (eom=Excess of Mass)",
+            "alpha": {
+                "type": "float",
+                "default": 1.0,
+                "min": 0.1,
+                "max": 2.0,
+                "step": 0.1,
+                "description": "Distance scaling parameter",
+                "tier": 3,
             },
         }
 
@@ -74,8 +102,10 @@ class HDBSCANMethod:
         clusterer = HDBSCAN(
             min_cluster_size=full_params["min_cluster_size"],
             min_samples=full_params["min_samples"],
-            metric=full_params["metric"],
             cluster_selection_method=full_params["cluster_selection_method"],
+            cluster_selection_epsilon=full_params["cluster_selection_epsilon"],
+            metric=full_params["metric"],
+            alpha=full_params["alpha"],
         )
         labels = clusterer.fit_predict(embeddings)
         return labels, clusterer

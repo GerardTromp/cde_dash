@@ -25,8 +25,10 @@ class DimReductionMethod(Protocol):
         - type: "int", "float", "bool", or "select"
         - default: default value
         - description: human-readable description
+        - tier: 1 (Essential), 2 (Important), or 3 (Advanced)
         - For numeric types: min, max, step (optional)
         - For select type: options (list of valid values)
+        - Optional: highlight (bool) - show with emphasis in UI
         """
         ...
 
@@ -51,7 +53,17 @@ class ClusteringMethod(Protocol):
 
     @staticmethod
     def param_schema() -> Dict[str, Dict[str, Any]]:
-        """Return parameter schema for UI generation."""
+        """Return parameter schema for UI generation.
+
+        Each parameter entry should have:
+        - type: "int", "float", "bool", or "select"
+        - default: default value
+        - description: human-readable description
+        - tier: 1 (Essential), 2 (Important), or 3 (Advanced)
+        - For numeric types: min, max, step (optional)
+        - For select type: options (list of valid values)
+        - Optional: highlight (bool) - show with emphasis in UI
+        """
         ...
 
     def fit_predict(

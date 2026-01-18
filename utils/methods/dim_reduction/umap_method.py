@@ -23,6 +23,9 @@ class UMAPMethod:
             "n_neighbors": 15,
             "min_dist": 0.1,
             "metric": "cosine",
+            "spread": 1.0,
+            "n_epochs": 200,
+            "negative_sample_rate": 5,
             "n_components": 2,
             "random_state": 42,
         }
@@ -31,12 +34,14 @@ class UMAPMethod:
     def param_schema() -> Dict[str, Dict[str, Any]]:
         """Return parameter schema for UI generation."""
         return {
+            # Tier 1 - Essential (always visible)
             "n_neighbors": {
                 "type": "int",
                 "default": 15,
                 "min": 2,
                 "max": 200,
                 "description": "Number of neighbors for local structure",
+                "tier": 1,
             },
             "min_dist": {
                 "type": "float",
@@ -45,12 +50,42 @@ class UMAPMethod:
                 "max": 1.0,
                 "step": 0.05,
                 "description": "Minimum distance between points in embedding",
+                "tier": 1,
             },
+            # Tier 2 - Important (expandable)
             "metric": {
                 "type": "select",
                 "default": "cosine",
                 "options": ["cosine", "euclidean", "manhattan", "correlation"],
                 "description": "Distance metric",
+                "tier": 2,
+            },
+            "spread": {
+                "type": "float",
+                "default": 1.0,
+                "min": 0.1,
+                "max": 5.0,
+                "step": 0.1,
+                "description": "Scale of embedded points spread",
+                "tier": 2,
+            },
+            # Tier 3 - Advanced (nested under Tier 2)
+            "n_epochs": {
+                "type": "int",
+                "default": 200,
+                "min": 50,
+                "max": 1000,
+                "step": 50,
+                "description": "Number of training epochs",
+                "tier": 3,
+            },
+            "negative_sample_rate": {
+                "type": "int",
+                "default": 5,
+                "min": 1,
+                "max": 20,
+                "description": "Negative samples per positive sample",
+                "tier": 3,
             },
         }
 
@@ -81,6 +116,9 @@ class UMAPMethod:
             n_neighbors=full_params["n_neighbors"],
             min_dist=full_params["min_dist"],
             metric=full_params["metric"],
+            spread=full_params["spread"],
+            n_epochs=full_params["n_epochs"],
+            negative_sample_rate=full_params["negative_sample_rate"],
             n_components=full_params["n_components"],
             random_state=full_params["random_state"],
         )
