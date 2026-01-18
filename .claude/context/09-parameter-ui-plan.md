@@ -1,8 +1,8 @@
 # Parameter UI Expansion - Phased Implementation Plan
 
 **Created**: 2026-01-18
-**Status**: Phase 3 Complete
-**Last Commit**: `b5c2f6e` (Phase 3)
+**Status**: Phase 4 Complete
+**Last Commit**: `0ae0a0f` (Phase 4)
 **Reference**: `../Claude_WireframeDescription.md`, `../Wireframe_clusterAppMethodsParameters.zip`
 
 ## Overview
@@ -78,14 +78,27 @@ Tasks:
 
 ---
 
-### Phase 4: Collapse/Expand Callbacks
+### Phase 4: Collapse/Expand Callbacks ✅ COMPLETE
 **Scope**: Wire up interactivity for collapsible sections
-**Files**: `utils/dash_app.py`
+**Files**: `utils/dash_app.py`, `utils/dash_app_functions.py`
 
 Tasks:
-- [ ] Add callbacks for Tier 2 toggle buttons
-- [ ] Add callbacks for Tier 3 toggle buttons (nested)
-- [ ] Handle state preservation across method changes
+- [x] Add callbacks for Tier 2 toggle buttons
+- [x] Add callbacks for Tier 3 toggle buttons (nested)
+- [x] Convert tier button/collapse IDs to pattern-matching format for MATCH callbacks
+
+**Changes Made**:
+- Imported `MATCH` from dash in `dash_app.py`
+- Updated `create_tiered_param_section()` to use pattern-matching IDs:
+  - Button IDs: `{"type": "{category}-tier-toggle", "tier": 2|3, "algorithm": method_id}`
+  - Collapse IDs: `{"type": "{category}-tier-collapse", "tier": 2|3, "algorithm": method_id}`
+- Updated `get_tier_collapse_ids()` to return pattern-matching ID dicts
+- Added 4 callbacks using `MATCH` for collapse/expand:
+  - `toggle_dim_tier2()` - Tier 2 for dim_reduction
+  - `toggle_dim_tier3()` - Tier 3 for dim_reduction
+  - `toggle_cluster_tier2()` - Tier 2 for clustering
+  - `toggle_cluster_tier3()` - Tier 3 for clustering
+- Callbacks update both collapse state and button text (arrow indicator)
 
 **Checkpoint**: Can be compacted after Phase 4
 

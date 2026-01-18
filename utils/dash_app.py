@@ -5,7 +5,7 @@ import pandas as pd  # type: ignore
 import numpy as np
 import pyperclip  # type: ignore
 import plotly.graph_objects as go  # type: ignore
-from dash import dcc, html, Input, Output, State, callback_context  # type: ignore
+from dash import dcc, html, Input, Output, State, callback_context, MATCH  # type: ignore
 from typing import Dict, List, Tuple, Optional, Any
 from datetime import datetime
 from utils.functions import logger
@@ -306,6 +306,62 @@ def setup_callbacks(self):
             # Update the parameter
             getattr(self, params_attr)[param] = auto_cast(v)
         return dbc.Alert("Parameters updated", color="info", duration=2000)
+
+    # --- Callback: toggle dim_reduction tier 2 collapse ---
+    @self.app.callback(
+        Output({"type": "dim_reduction-tier-collapse", "tier": 2, "algorithm": MATCH}, "is_open"),
+        Output({"type": "dim_reduction-tier-toggle", "tier": 2, "algorithm": MATCH}, "children"),
+        Input({"type": "dim_reduction-tier-toggle", "tier": 2, "algorithm": MATCH}, "n_clicks"),
+        State({"type": "dim_reduction-tier-collapse", "tier": 2, "algorithm": MATCH}, "is_open"),
+        prevent_initial_call=True,
+    )
+    def toggle_dim_tier2(n_clicks, is_open):
+        """Toggle dim_reduction Tier 2 collapse and update button text."""
+        new_state = not is_open
+        button_text = get_toggle_button_text(new_state, tier=2)
+        return new_state, button_text
+
+    # --- Callback: toggle dim_reduction tier 3 collapse ---
+    @self.app.callback(
+        Output({"type": "dim_reduction-tier-collapse", "tier": 3, "algorithm": MATCH}, "is_open"),
+        Output({"type": "dim_reduction-tier-toggle", "tier": 3, "algorithm": MATCH}, "children"),
+        Input({"type": "dim_reduction-tier-toggle", "tier": 3, "algorithm": MATCH}, "n_clicks"),
+        State({"type": "dim_reduction-tier-collapse", "tier": 3, "algorithm": MATCH}, "is_open"),
+        prevent_initial_call=True,
+    )
+    def toggle_dim_tier3(n_clicks, is_open):
+        """Toggle dim_reduction Tier 3 collapse and update button text."""
+        new_state = not is_open
+        button_text = get_toggle_button_text(new_state, tier=3)
+        return new_state, button_text
+
+    # --- Callback: toggle clustering tier 2 collapse ---
+    @self.app.callback(
+        Output({"type": "clustering-tier-collapse", "tier": 2, "algorithm": MATCH}, "is_open"),
+        Output({"type": "clustering-tier-toggle", "tier": 2, "algorithm": MATCH}, "children"),
+        Input({"type": "clustering-tier-toggle", "tier": 2, "algorithm": MATCH}, "n_clicks"),
+        State({"type": "clustering-tier-collapse", "tier": 2, "algorithm": MATCH}, "is_open"),
+        prevent_initial_call=True,
+    )
+    def toggle_cluster_tier2(n_clicks, is_open):
+        """Toggle clustering Tier 2 collapse and update button text."""
+        new_state = not is_open
+        button_text = get_toggle_button_text(new_state, tier=2)
+        return new_state, button_text
+
+    # --- Callback: toggle clustering tier 3 collapse ---
+    @self.app.callback(
+        Output({"type": "clustering-tier-collapse", "tier": 3, "algorithm": MATCH}, "is_open"),
+        Output({"type": "clustering-tier-toggle", "tier": 3, "algorithm": MATCH}, "children"),
+        Input({"type": "clustering-tier-toggle", "tier": 3, "algorithm": MATCH}, "n_clicks"),
+        State({"type": "clustering-tier-collapse", "tier": 3, "algorithm": MATCH}, "is_open"),
+        prevent_initial_call=True,
+    )
+    def toggle_cluster_tier3(n_clicks, is_open):
+        """Toggle clustering Tier 3 collapse and update button text."""
+        new_state = not is_open
+        button_text = get_toggle_button_text(new_state, tier=3)
+        return new_state, button_text
 
     # --- Callback: run analysis with selected methods ---
     @self.app.callback(

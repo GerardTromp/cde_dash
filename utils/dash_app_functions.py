@@ -443,10 +443,19 @@ def create_tiered_param_section(
     ]
 
     # Tier 3 collapse (nested within Tier 2)
+    # Use pattern-matching IDs for callback compatibility
     tier3_section = []
     if tier3_params:
-        tier3_collapse_id = f"{category}-{method_id}-tier3-collapse"
-        tier3_button_id = f"{category}-{method_id}-tier3-toggle"
+        tier3_button_id = {
+            "type": f"{category}-tier-toggle",
+            "tier": 3,
+            "algorithm": method_id,
+        }
+        tier3_collapse_id = {
+            "type": f"{category}-tier-collapse",
+            "tier": 3,
+            "algorithm": method_id,
+        }
         tier3_section = [
             dbc.Button(
                 "▸ Advanced",
@@ -466,8 +475,16 @@ def create_tiered_param_section(
     # Tier 2 collapse (includes Tier 3 nested)
     tier2_section = []
     if tier2_params or tier3_params:
-        tier2_collapse_id = f"{category}-{method_id}-tier2-collapse"
-        tier2_button_id = f"{category}-{method_id}-tier2-toggle"
+        tier2_button_id = {
+            "type": f"{category}-tier-toggle",
+            "tier": 2,
+            "algorithm": method_id,
+        }
+        tier2_collapse_id = {
+            "type": f"{category}-tier-collapse",
+            "tier": 2,
+            "algorithm": method_id,
+        }
         tier2_section = [
             dbc.Button(
                 "▸ More options",
@@ -493,7 +510,7 @@ def create_tiered_param_section(
 
 def get_tier_collapse_ids(
     method_id: str, category: str = "dim_reduction"
-) -> Dict[str, Dict[str, str]]:
+) -> Dict[str, Dict[str, Any]]:
     """Get the collapse and button IDs for a method's tiered sections.
 
     Used by callbacks to wire up collapse/expand behavior.
@@ -504,16 +521,32 @@ def get_tier_collapse_ids(
 
     Returns:
         Dict with "tier2" and "tier3" keys, each containing
-        "collapse" and "button" ID strings
+        "collapse" and "button" pattern-matching IDs
     """
     return {
         "tier2": {
-            "collapse": f"{category}-{method_id}-tier2-collapse",
-            "button": f"{category}-{method_id}-tier2-toggle",
+            "collapse": {
+                "type": f"{category}-tier-collapse",
+                "tier": 2,
+                "algorithm": method_id,
+            },
+            "button": {
+                "type": f"{category}-tier-toggle",
+                "tier": 2,
+                "algorithm": method_id,
+            },
         },
         "tier3": {
-            "collapse": f"{category}-{method_id}-tier3-collapse",
-            "button": f"{category}-{method_id}-tier3-toggle",
+            "collapse": {
+                "type": f"{category}-tier-collapse",
+                "tier": 3,
+                "algorithm": method_id,
+            },
+            "button": {
+                "type": f"{category}-tier-toggle",
+                "tier": 3,
+                "algorithm": method_id,
+            },
         },
     }
 
