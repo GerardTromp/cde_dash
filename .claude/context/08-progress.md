@@ -10,11 +10,11 @@
 
 | Commit | Date | Description |
 |--------|------|-------------|
+| `e7eb716` | 2026-01-18 | Add documentation: context updates and mkdocs structure |
 | `70ac4b2` | 2026-01-18 | Refactor to modular registry-based architecture for methods |
 | `f646975` | 2026-01-17 | Fix callback wiring and add parameter update UI |
 | `12830af` | 2026-01-17 | Claude Checkpoint -- initial commit |
 | `dfa0705` | 2026-01-17 | Add checkpoint system documentation |
-| `243f94a` | 2026-01-17 | Parameter Updating - new branch for param updating |
 
 ## Active Branches
 

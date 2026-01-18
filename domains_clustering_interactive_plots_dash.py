@@ -81,6 +81,7 @@ class InteractiveClusteringAnalyzer:
         self.tsne_params = {}
         self.analysis_params = {}
         self.app = None
+        self.show_progress = True
 
     load_domain_mapping = load_domain_mapping
     extract_text_fields = extract_text_fields

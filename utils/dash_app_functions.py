@@ -193,10 +193,12 @@ def param_inputs_from_schema(
 
         if param_type == "select":
             # Dropdown for select type
-            options = [{"label": str(opt), "value": opt} for opt in spec.get("options", [])]
+            options: List[Dict[str, Any]] = [
+                {"label": str(opt), "value": opt} for opt in spec.get("options", [])
+            ]
             input_element = dcc.Dropdown(
                 id=input_id,
-                options=options,
+                options=options,  # type: ignore[arg-type]
                 value=current_value,
                 clearable=False,
                 className="form-control",
