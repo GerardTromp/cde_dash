@@ -9,7 +9,13 @@ from dash import dcc, html, Input, Output, State, callback_context  # type: igno
 from typing import Dict, List, Tuple, Optional, Any
 from datetime import datetime
 from utils.functions import logger
-from utils.dash_app_functions import param_inputs, param_inputs_from_schema
+from utils.dash_app_functions import (
+    param_inputs,
+    param_inputs_from_schema,
+    create_tiered_param_section,
+    get_tier_collapse_ids,
+    get_toggle_button_text,
+)
 from utils.methods import MethodRegistry
 from utils.export_params import export_params_yaml
 
@@ -216,7 +222,7 @@ def setup_callbacks(self):
         Input("dim-reduction-selector", "value"),
     )
     def update_dim_params(method_id):
-        """Render parameter inputs for selected dimension reduction method."""
+        """Render tiered parameter inputs for selected dimension reduction method."""
         if not method_id:
             return []
         method_class = MethodRegistry.get_dim_reduction(method_id)
@@ -226,7 +232,7 @@ def setup_callbacks(self):
         if current is None:
             current = method_class.default_params()
             setattr(self, f"{method_id}_params", current.copy())
-        return param_inputs_from_schema(schema, method_id, current)
+        return create_tiered_param_section(schema, method_id, current, category="dim_reduction")
 
     # --- Callback: render clustering parameters ---
     @self.app.callback(
@@ -234,7 +240,7 @@ def setup_callbacks(self):
         Input("clustering-selector", "value"),
     )
     def update_clustering_params(method_id):
-        """Render parameter inputs for selected clustering method."""
+        """Render tiered parameter inputs for selected clustering method."""
         if not method_id:
             return []
         method_class = MethodRegistry.get_clustering(method_id)
@@ -244,7 +250,7 @@ def setup_callbacks(self):
         if current is None:
             current = method_class.default_params()
             setattr(self, f"{method_id}_params", current.copy())
-        return param_inputs_from_schema(schema, method_id, current)
+        return create_tiered_param_section(schema, method_id, current, category="clustering")
 
     # --- Callback: toggle comparison mode ---
     @self.app.callback(
@@ -257,27 +263,45 @@ def setup_callbacks(self):
             return {"display": "block"}
         return {"display": "none"}
 
-    # --- Callback: sync parameter values on input change ---
+    # --- Callback: sync dimension reduction parameter values on input change ---
     @self.app.callback(
         Output("param-sync-status", "children"),
-        Input({"type": "param-input", "algo": dash.ALL, "param": dash.ALL}, "value"),
-        State({"type": "param-input", "algo": dash.ALL, "param": dash.ALL}, "id"),
+        Input({"type": "dim_reduction-param", "algorithm": dash.ALL, "param": dash.ALL}, "value"),
+        State({"type": "dim_reduction-param", "algorithm": dash.ALL, "param": dash.ALL}, "id"),
         prevent_initial_call=True,
     )
-    def sync_params(values, ids):
-        """Update parameter dicts when user edits input fields."""
+    def sync_dim_params(values, ids):
+        """Update dimension reduction parameter dicts when user edits input fields."""
         from utils.dash_app_functions import auto_cast
         for v, id_dict in zip(values, ids):
-            method_id = id_dict["algo"]
+            method_id = id_dict["algorithm"]
             param = id_dict["param"]
             # Initialize params dict if it doesn't exist
             params_attr = f"{method_id}_params"
             if not hasattr(self, params_attr) or getattr(self, params_attr) is None:
-                # Get defaults from registry
-                try:
-                    method_class = MethodRegistry.get_dim_reduction(method_id)
-                except KeyError:
-                    method_class = MethodRegistry.get_clustering(method_id)
+                method_class = MethodRegistry.get_dim_reduction(method_id)
+                setattr(self, params_attr, method_class.default_params().copy())
+            # Update the parameter
+            getattr(self, params_attr)[param] = auto_cast(v)
+        return dbc.Alert("Parameters updated", color="info", duration=2000)
+
+    # --- Callback: sync clustering parameter values on input change ---
+    @self.app.callback(
+        Output("param-sync-status", "children", allow_duplicate=True),
+        Input({"type": "clustering-param", "algorithm": dash.ALL, "param": dash.ALL}, "value"),
+        State({"type": "clustering-param", "algorithm": dash.ALL, "param": dash.ALL}, "id"),
+        prevent_initial_call=True,
+    )
+    def sync_cluster_params(values, ids):
+        """Update clustering parameter dicts when user edits input fields."""
+        from utils.dash_app_functions import auto_cast
+        for v, id_dict in zip(values, ids):
+            method_id = id_dict["algorithm"]
+            param = id_dict["param"]
+            # Initialize params dict if it doesn't exist
+            params_attr = f"{method_id}_params"
+            if not hasattr(self, params_attr) or getattr(self, params_attr) is None:
+                method_class = MethodRegistry.get_clustering(method_id)
                 setattr(self, params_attr, method_class.default_params().copy())
             # Update the parameter
             getattr(self, params_attr)[param] = auto_cast(v)

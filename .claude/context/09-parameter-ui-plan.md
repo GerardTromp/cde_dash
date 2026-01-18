@@ -1,8 +1,8 @@
 # Parameter UI Expansion - Phased Implementation Plan
 
 **Created**: 2026-01-18
-**Status**: Phase 2 Complete
-**Last Commit**: `9d87d18` (Phase 1)
+**Status**: Phase 3 Complete
+**Last Commit**: `b5c2f6e` (Phase 3)
 **Reference**: `../Claude_WireframeDescription.md`, `../Wireframe_clusterAppMethodsParameters.zip`
 
 ## Overview
@@ -57,14 +57,22 @@ Tasks:
 
 ---
 
-### Phase 3: Update Layout for Tiered Display
+### Phase 3: Update Layout for Tiered Display ✅ COMPLETE
 **Scope**: Integrate tiered parameters into main layout
 **Files**: `utils/dash_app.py`, `utils/dash_app_functions.py`
 
 Tasks:
-- [ ] Refactor `param_inputs_from_schema()` to support tiers
-- [ ] Update layout to use new tiered components
-- [ ] Ensure dynamic ID generation works with tiers
+- [x] Update imports in `dash_app.py` for new tiered functions
+- [x] Modify `update_dim_params()` callback to use `create_tiered_param_section()`
+- [x] Modify `update_clustering_params()` callback to use `create_tiered_param_section()`
+- [x] Split `sync_params()` into separate callbacks for dim_reduction and clustering
+- [x] Update pattern-matching IDs from `param-input`/`algo` to `{category}-param`/`algorithm`
+
+**Changes Made**:
+- Updated imports to include `create_tiered_param_section`, `get_tier_collapse_ids`, `get_toggle_button_text`
+- Both param rendering callbacks now use `create_tiered_param_section()` with appropriate category
+- Created separate sync callbacks: `sync_dim_params()` and `sync_cluster_params()`
+- ID structure now uses `{"type": "dim_reduction-param", "algorithm": ..., "param": ...}`
 
 **Checkpoint**: Can be compacted after Phase 3
 
