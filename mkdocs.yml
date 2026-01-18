@@ -1,0 +1,52 @@
+site_name: CDE Clustering Application
+site_description: Interactive clustering analysis for Common Data Elements using embedding-based visualization
+site_author: Gerard Tromp
+repo_url: https://github.com/GerardTromp/cde_dash
+repo_name: GerardTromp/cde_dash
+
+theme:
+  name: readthedocs
+  locale: en
+  highlightjs: true
+  hljs_languages:
+    - python
+    - yaml
+    - bash
+
+nav:
+  - Home: index.md
+  - Getting Started:
+    - Installation: getting-started/installation.md
+    - Quick Start: getting-started/quickstart.md
+    - Configuration: getting-started/configuration.md
+  - User Guide:
+    - Overview: user-guide/overview.md
+    - Method Selection: user-guide/method-selection.md
+    - Parameter Tuning: user-guide/parameters.md
+    - Data Export: user-guide/export.md
+    - Comparison Mode: user-guide/comparison.md
+  - Architecture:
+    - Overview: architecture/overview.md
+    - Method Registry: architecture/registry.md
+    - Plugin System: architecture/plugins.md
+  - Developer Guide:
+    - Adding Methods: developer/adding-methods.md
+    - API Reference: developer/api.md
+  - API Reference:
+    - MethodRegistry: api/registry.md
+    - Dimension Reduction: api/dim-reduction.md
+    - Clustering: api/clustering.md
+
+markdown_extensions:
+  - admonition
+  - codehilite:
+      guess_lang: false
+  - toc:
+      permalink: true
+  - tables
+
+plugins:
+  - search
+
+extra_css:
+  - css/extra.css

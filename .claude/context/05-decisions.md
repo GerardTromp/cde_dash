@@ -148,7 +148,7 @@ Use HDBSCAN with configurable min_cluster_size and min_samples.
 ## ADR-007: Centralized Parameter Management
 
 ### Status
-In Progress (current development focus)
+Completed (superseded by ADR-008)
 
 ### Context
 Parameters for UMAP, t-SNE, and HDBSCAN are scattered and hard to modify at runtime.
@@ -164,7 +164,92 @@ Move parameters to central dictionaries on the analyzer instance, loadable from 
 ### Consequences
 - Requires UI components for parameter editing
 - Need callbacks to sync UI state with dictionaries
-- Current work-in-progress (see git history)
+- Evolved into full modular architecture (see ADR-008)
+
+---
+
+## ADR-008: Modular Registry-Based Architecture for Methods
+
+### Status
+Accepted (2026-01-18)
+
+### Context
+The application had hard-coded dimension reduction (UMAP, t-SNE) and clustering (HDBSCAN) methods. Adding new methods required modifying multiple files. Parameter configuration was method-specific and not extensible.
+
+### Decision
+Implement a modular plugin architecture with:
+1. `utils/methods/` package with decorator-based registration
+2. Protocol contracts (`DimReductionMethod`, `ClusteringMethod`) for type safety
+3. Schema-driven parameter UI generation
+4. Single-select method dropdowns (one dim reduction, one clustering)
+5. Optional comparison mode for two dim reduction methods
+6. YAML parameter export for reproducibility
+
+### Implementation
+
+**New Files:**
+- `utils/methods/base.py` - Protocol definitions
+- `utils/methods/registry.py` - Central MethodRegistry class
+- `utils/methods/dim_reduction/` - UMAP, t-SNE, PCA plugins
+- `utils/methods/clustering/` - HDBSCAN, DBSCAN, K-Means, Spectral plugins
+- `utils/export_params.py` - YAML export function
+
+**Modified Files:**
+- `utils/dash_app.py` - New UI layout with method selectors
+- `utils/dash_app_functions.py` - `param_inputs_from_schema()`
+- `utils/run_analysis.py` - `run_analysis_single()`, `create_single_plot()`, `create_comparison_plot()`
+
+### Rationale
+- **Extensibility**: Adding new methods requires only creating a new file with `@MethodRegistry.register_*` decorator
+- **Type Safety**: Protocol contracts ensure all methods implement required interface
+- **UI Flexibility**: Schema-driven parameter inputs adapt to any method
+- **Reproducibility**: YAML export captures exact configuration
+- **Comparison**: Optional comparison mode preserves valuable side-by-side analysis
+
+### Consequences
+- Breaking change: Method selection now precedes parameter configuration
+- Only one method active per category at runtime
+- Legacy functions (`run_analysis()`, `apply_dimensionality_reduction()`) preserved for compatibility
+- New methods added: PCA, DBSCAN, K-Means, Spectral Clustering
+
+---
+
+## ADR-009: Schema-Driven Parameter UI
+
+### Status
+Accepted (2026-01-18)
+
+### Context
+Each analysis method has different parameters with different types, ranges, and constraints. Hard-coding UI for each method is not scalable.
+
+### Decision
+Each method class defines a `param_schema()` static method that returns a dictionary describing each parameter:
+```python
+{
+    "param_name": {
+        "type": "int" | "float" | "bool" | "select",
+        "default": value,
+        "min": value,  # for numeric
+        "max": value,  # for numeric
+        "step": value, # for numeric
+        "options": [...],  # for select
+        "description": "..."
+    }
+}
+```
+
+The `param_inputs_from_schema()` function dynamically generates appropriate Dash components.
+
+### Rationale
+- Single source of truth for parameter constraints
+- Automatic UI generation
+- Consistent parameter handling across all methods
+- Type-appropriate input widgets (number inputs, dropdowns, switches)
+
+### Consequences
+- Methods must implement both `default_params()` and `param_schema()`
+- Schema must be kept in sync with `default_params()`
+- Some advanced parameter types (e.g., tuples) use fallback text input
 
 ---
 
@@ -172,6 +257,9 @@ Move parameters to central dictionaries on the analyzer instance, loadable from 
 
 | Date | Commit | Decision |
 |------|--------|----------|
+| 2026-01-18 | `70ac4b2` | Modular registry-based architecture |
+| Recent | `f646975` | Fix callback wiring and add parameter update UI |
+| Recent | `12830af` | Claude Checkpoint -- initial commit |
 | Recent | `8aa7607` | Code functional - baseline working state |
 | Recent | `bac5458` | Moved parameters to central dict |
 | Recent | `66025d8` | Created param-update branch |

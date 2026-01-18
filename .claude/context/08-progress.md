@@ -3,49 +3,70 @@
 ## Current State
 
 **Branch**: `parameter-update`
-**Status**: Active development
-**Last Updated**: 2026-01-17
+**Status**: Modular architecture complete
+**Last Updated**: 2026-01-18
 
 ## Recent Git History
 
 | Commit | Date | Description |
 |--------|------|-------------|
+| `70ac4b2` | 2026-01-18 | Refactor to modular registry-based architecture for methods |
+| `f646975` | 2026-01-17 | Fix callback wiring and add parameter update UI |
+| `12830af` | 2026-01-17 | Claude Checkpoint -- initial commit |
 | `dfa0705` | 2026-01-17 | Add checkpoint system documentation |
-| `f545ed2` | 2026-01-17 | Add checkpoint system structure |
 | `243f94a` | 2026-01-17 | Parameter Updating - new branch for param updating |
-| `66025d8` | Recent | Branching commit: incorporating param updating |
-| `436426a` | Recent | Dummy commit |
-| `bac5458` | Recent | Moved parameters to central dict |
-| `8aa7607` | Recent | Code functional |
 
 ## Active Branches
 
 | Branch | Status | Description |
 |--------|--------|-------------|
 | `main` | Stable | Base working version |
-| `parameter-update` | **Active** | Adding runtime parameter updates |
-| `param_update` | Stale? | Earlier parameter work |
-| `origin/update-parameters` | Remote | Remote tracking branch |
+| `parameter-update` | **Active** | Modular architecture with runtime param updates |
 
-## Current Work: Parameter Update Feature
+## Current Work: Modular Architecture (COMPLETED)
 
 ### Goal
-Allow users to modify UMAP/t-SNE/HDBSCAN parameters via the Dash UI and re-run analysis with new settings.
+Refactor to modular, registry-based architecture for dimension reduction and clustering methods with dynamic parameter UI.
 
-### Progress
-1. ✅ Parameters moved to central dictionaries on analyzer instance
-2. ✅ Parameter INI file loading implemented
-3. ✅ `param_inputs()` UI builder created in `dash_app_functions.py`
-4. ⏳ Callbacks for parameter UI not fully wired
-5. ⏳ Re-clustering on parameter change not implemented
+### Progress - All Complete
+1. ✅ Created `utils/methods/` plugin system
+2. ✅ Implemented Protocol-based contracts (base.py)
+3. ✅ Created MethodRegistry with decorator registration (registry.py)
+4. ✅ Migrated UMAP to modular method
+5. ✅ Migrated t-SNE to modular method
+6. ✅ Added PCA dimension reduction method
+7. ✅ Migrated HDBSCAN to modular method
+8. ✅ Added DBSCAN clustering method
+9. ✅ Added K-Means clustering method
+10. ✅ Added Spectral clustering method
+11. ✅ Updated dash_app.py with method selectors
+12. ✅ Added param_inputs_from_schema() for dynamic UI
+13. ✅ Added run_analysis_single() using registry
+14. ✅ Added create_single_plot() and create_comparison_plot()
+15. ✅ Added YAML parameter export (export_params.py)
+16. ✅ Added comparison mode toggle
+17. ✅ All tests passing
+
+### Files Created
+- `utils/methods/__init__.py`
+- `utils/methods/base.py`
+- `utils/methods/registry.py`
+- `utils/methods/dim_reduction/__init__.py`
+- `utils/methods/dim_reduction/umap_method.py`
+- `utils/methods/dim_reduction/tsne.py`
+- `utils/methods/dim_reduction/pca.py`
+- `utils/methods/clustering/__init__.py`
+- `utils/methods/clustering/hdbscan.py`
+- `utils/methods/clustering/dbscan.py`
+- `utils/methods/clustering/kmeans.py`
+- `utils/methods/clustering/spectral.py`
+- `utils/export_params.py`
 
 ### Files Modified
-- `domains_clustering_interactive_plots_dash.py` - Parameter loading
-- `utils/argparse.py` - Added `--param-path` argument
-- `utils/dash_app.py` - Added parameter callbacks (incomplete)
-- `utils/dash_app_functions.py` - Created `param_inputs()` builder
-- `utils/functions.py` - Added `auto_cast()` function
-- `utils/run_analysis.py` - Modified to use instance params
+- `domains_clustering_interactive_plots_dash.py` - Method bindings
+- `utils/dash_app.py` - New UI with method selectors
+- `utils/dash_app_functions.py` - Added param_inputs_from_schema()
+- `utils/run_analysis.py` - Added registry-based analysis functions
 
 ## Completed Features
 
@@ -53,55 +74,56 @@ Allow users to modify UMAP/t-SNE/HDBSCAN parameters via the Dash UI and re-run a
 - ✅ CDE data loading from CSV
 - ✅ Domain mapping and filtering
 - ✅ Precomputed embedding loading
-- ✅ t-SNE dimensionality reduction
-- ✅ UMAP dimensionality reduction
-- ✅ HDBSCAN clustering
+- ✅ **Modular dimension reduction** (UMAP, t-SNE, PCA)
+- ✅ **Modular clustering** (HDBSCAN, DBSCAN, K-Means, Spectral)
 - ✅ Clustering metrics (silhouette, coverage)
 - ✅ Interactive Dash visualization
-- ✅ Model selection radio buttons
-- ✅ Faceted t-SNE/UMAP comparison plot
+- ✅ **Single-select method dropdowns**
+- ✅ **Dynamic parameter population**
+- ✅ **Comparison mode toggle**
+- ✅ Single method plot
+- ✅ Side-by-side comparison plot
 - ✅ Lasso/box selection of data points
 - ✅ Export to JSON
 - ✅ Export to CSV
 - ✅ Copy to clipboard
+- ✅ **YAML parameter export**
 - ✅ INI-based configuration
 - ✅ Logging (console + file)
 
 ### Infrastructure
 - ✅ Claude checkpoint system structure
 - ✅ Checkpoint documentation
+- ✅ Method registry system
+- ✅ Protocol-based contracts
 
 ## Pending / TODO
 
 ### High Priority
-- [ ] Complete parameter UI integration
-- [ ] Add "Re-analyze" button
-- [ ] Wire parameter change callbacks
-- [ ] Test parameter update flow end-to-end
+- [ ] Full integration test with real data
+- [ ] Documentation (mkdocs setup)
 
 ### Medium Priority
 - [ ] Add loading indicators during analysis
-- [ ] Add error messages to UI
-- [ ] Validate parameter values before running
+- [ ] Add error messages to UI for invalid parameters
+- [ ] Parameter validation before running
 
 ### Low Priority
-- [ ] Add unit tests
+- [ ] Add unit tests for method registry
 - [ ] Reduce unused imports
-- [ ] Add type hints throughout
-- [ ] Documentation (README)
+- [ ] Add more type hints
+- [ ] README updates
 
-## Known Blockers
+## Known Issues
 
-1. **Callback mismatch**: `dash_app.py` has interleaved callback definitions that need cleanup
-2. **Missing UI elements**: Some callbacks reference non-existent UI components
+None currently blocking.
 
 ## Next Steps
 
-1. Clean up callback definitions in `dash_app.py`
-2. Add missing UI elements (`param-ui`, `algo-selector`, `debug-output`)
-3. Test parameter editing flow
-4. Add re-analysis trigger
+1. Test full application with real data
+2. Set up mkdocs documentation
+3. Consider adding more methods (e.g., Agglomerative clustering, Isomap)
 
 ---
 
-*Last context file update: 2026-01-17*
+*Last context file update: 2026-01-18*
