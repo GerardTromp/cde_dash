@@ -66,6 +66,38 @@ This script (not tracked by git) performs all initialization steps:
 
 **See** `.claude/context/04-patterns.md` → "Session Setup Patterns" for detailed examples and troubleshooting.
 
+## Large Task Execution Protocol
+
+For extensive multi-phase work that may exceed chat attention limits:
+
+### Phased Execution Rules
+1. **Pause after each phase** - Do not auto-continue to the next phase
+2. **Create per-phase TODOs** - If a phase has many steps, break it into a sub-TODO list
+3. **Provide continuation prompt** - After completing a phase, provide the exact prompt to continue seamlessly after `/compact`
+
+### Continuation Prompt Format
+After completing a phase, provide a prompt block like:
+```
+--- CONTINUATION PROMPT ---
+Back from compacting. Continue with [Phase X: Description].
+Read `.claude/context/[relevant-plan].md` for context.
+Last completed: [specific task]
+Next step: [specific next action]
+--- END PROMPT ---
+```
+
+### Why Manual Compacting
+- Auto-compact works but loses nuanced context
+- Manual compacting at phase boundaries preserves work quality
+- Explicit continuation prompts ensure seamless resumption
+
+### Phase Checkpoint Requirements
+At each phase completion:
+1. Update the plan file with completion status
+2. Update the most recent checkpoint file
+3. Commit if there are stable, working changes
+4. Provide the continuation prompt
+
 ## Current status
 
 
