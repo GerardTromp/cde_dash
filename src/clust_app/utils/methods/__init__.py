@@ -4,7 +4,7 @@ This package provides a registry-based architecture for dimension reduction
 and clustering methods. Methods are automatically registered when imported.
 
 Usage:
-    from utils.methods import MethodRegistry
+    from clust_app.utils.methods import MethodRegistry
 
     # List available methods
     dim_methods = MethodRegistry.list_dim_reduction()

@@ -17,7 +17,7 @@ from sklearn.manifold import TSNE
 # from sentence_transformers import SentenceTransformer  # type: ignore
 from pathlib import Path
 from collections import defaultdict
-from utils.functions import (
+from clust_app.utils.functions import (
     logger,
     extract_text_fields,
     create_faceted_plots,
@@ -26,15 +26,15 @@ from utils.functions import (
     load_embedding_models,
     load_configs,
 )
-from utils.dash_app import create_dash_app, setup_callbacks
-from utils.argparse import cde_argparse
-from utils.internal_functions import (
+from clust_app.utils.dash_app import create_dash_app, setup_callbacks
+from clust_app.utils.argparse import cde_argparse
+from clust_app.utils.internal_functions import (
     _truncate_text,
     _get_color_and_shape,
     _create_faceted_comparison_figure,
     _clean_text,
 )
-from utils.run_analysis import (
+from clust_app.utils.run_analysis import (
     run_analysis,
     apply_clustering,
     apply_dimensionality_reduction,

@@ -8,16 +8,16 @@ import plotly.graph_objects as go  # type: ignore
 from dash import dcc, html, Input, Output, State, callback_context, MATCH  # type: ignore
 from typing import Dict, List, Tuple, Optional, Any
 from datetime import datetime
-from utils.functions import logger
-from utils.dash_app_functions import (
+from clust_app.utils.functions import logger
+from clust_app.utils.dash_app_functions import (
     param_inputs,
     param_inputs_from_schema,
     create_tiered_param_section,
     get_tier_collapse_ids,
     get_toggle_button_text,
 )
-from utils.methods import MethodRegistry
-from utils.export_params import export_params_yaml, export_analysis_package
+from clust_app.utils.methods import MethodRegistry
+from clust_app.utils.export_params import export_params_yaml, export_analysis_package
 
 
 def create_dash_app(self) -> dash.Dash:
@@ -351,7 +351,7 @@ def setup_callbacks(self):
     )
     def sync_dim_params(values, ids):
         """Update dimension reduction parameter dicts when user edits input fields."""
-        from utils.dash_app_functions import auto_cast
+        from clust_app.utils.dash_app_functions import auto_cast
         for v, id_dict in zip(values, ids):
             method_id = id_dict["algorithm"]
             param = id_dict["param"]
@@ -373,7 +373,7 @@ def setup_callbacks(self):
     )
     def sync_cluster_params(values, ids):
         """Update clustering parameter dicts when user edits input fields."""
-        from utils.dash_app_functions import auto_cast
+        from clust_app.utils.dash_app_functions import auto_cast
         for v, id_dict in zip(values, ids):
             method_id = id_dict["algorithm"]
             param = id_dict["param"]

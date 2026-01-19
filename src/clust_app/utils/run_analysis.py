@@ -10,9 +10,9 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.cluster import HDBSCAN  # type: ignore
 from sklearn.manifold import TSNE
 from sklearn.metrics import silhouette_score
-from utils.functions import logger, date_time_string
-from utils.methods import MethodRegistry
-from utils.plot_builder import PlotBuilder
+from clust_app.utils.functions import logger, date_time_string
+from clust_app.utils.methods import MethodRegistry
+from clust_app.utils.plot_builder import PlotBuilder
 
 
 def apply_dimensionality_reduction(
