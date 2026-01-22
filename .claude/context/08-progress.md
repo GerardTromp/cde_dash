@@ -3,139 +3,138 @@
 ## Current State
 
 **Branch**: `parameter-update`
-**Status**: Feature Complete (Parameter UI Expansion + Modular Architecture)
-**Last Commit**: `7a9964e` (Complete Phase 6: Integration testing and bug fix)
-**Last Updated**: 2026-01-18 20:50
+**Status**: PyPI Package Conversion Complete
+**Last Commit**: `9fad056` (Convert to PyPI-style package with editable install support)
+**Last Updated**: 2026-01-19 03:04
 
 ## Recent Git History
 
 | Commit | Date | Description |
 |--------|------|-------------|
+| `9fad056` | 2026-01-19 | Convert to PyPI-style package with editable install support |
+| `0cbafc6` | 2026-01-18 | Fix 2x2 comparison mode and UI layout improvements |
 | `7a9964e` | 2026-01-18 | Complete Phase 6: Integration testing and bug fix |
 | `b6f5f0e` | 2026-01-18 | Add second clustering method comparison feature (Phase 5) |
 | `f34c18c` | 2026-01-18 | Add collapse/expand callbacks for tiered parameter UI (Phase 4) |
-| `6780820` | 2026-01-18 | Integrate tiered parameter UI into layout callbacks |
-| `8adc450` | 2026-01-18 | Add tiered collapsible parameter UI components |
-| `9d87d18` | 2026-01-18 | Add tiered parameter schemas for collapsible UI |
-| `7a45229` | 2026-01-18 | Add large task execution protocol and parameter UI plan |
-| `415c67d` | 2026-01-18 | Add show_progress flag and type annotation fixes |
-| `e7eb716` | 2026-01-18 | Add documentation: context updates and mkdocs structure |
-| `70ac4b2` | 2026-01-18 | Refactor to modular registry-based architecture for methods |
 
 ## Active Branches
 
 | Branch | Status | Description |
 |--------|--------|-------------|
 | `main` | Stable | Base working version |
-| `parameter-update` | **Active** | Feature complete - ready for merge |
+| `parameter-update` | **Active** | PyPI package - ready for merge |
 
-## Recently Completed: Parameter UI Expansion (All 6 Phases)
+## Package Structure (NEW)
 
-### Phase Summary
+```
+clust_app/
+├── pyproject.toml              # Package metadata and dependencies
+├── src/clust_app/
+│   ├── __init__.py             # Package exports (__version__, main classes)
+│   ├── app.py                  # Main application (InteractiveClusteringAnalyzer)
+│   ├── cli.py                  # Console entry point
+│   └── utils/
+│       ├── methods/            # Plugin architecture (DR + clustering)
+│       ├── dash_app.py         # Dash UI and callbacks
+│       ├── run_analysis.py     # Analysis pipeline
+│       ├── plot_builder.py     # Modular plot generation
+│       └── export_params.py    # YAML + PNG export
+```
 
-| Phase | Description | Commit | Status |
-|-------|-------------|--------|--------|
-| Phase 1 | Schema Extension - Add tier field to all param schemas | `9d87d18` | ✅ Complete |
-| Phase 2 | Collapsible UI Components - dbc.Collapse wrappers | `8adc450` | ✅ Complete |
-| Phase 3 | Update Layout - Integrate tiered params into callbacks | `6780820` | ✅ Complete |
-| Phase 4 | Collapse/Expand Callbacks - Pattern-matching MATCH | `f34c18c` | ✅ Complete |
-| Phase 5 | Second Clustering Method - Dual clustering comparison | `b6f5f0e` | ✅ Complete |
-| Phase 6 | Integration & Testing - Bug fixes, verification | `7a9964e` | ✅ Complete |
+## Installation
 
-### Key Features Implemented
+```bash
+source ~/venv/py312_clustapp/bin/activate
+pip install -e .
+clust-app --help
+```
 
-1. **Tiered Parameter Display**
-   - Tier 1 (Essential): Always visible
-   - Tier 2 (Important): Collapsible "More options" button
-   - Tier 3 (Advanced): Nested collapse under Tier 2
-
-2. **Second Clustering Method**
-   - Toggle switch to enable comparison mode
-   - Secondary clustering dropdown
-   - Secondary parameter section (with same tiered display)
-   - Side-by-side clustering comparison plot
-
-3. **Pattern-Matching Callbacks**
-   - 4 MATCH callbacks for tier toggles
-   - Dynamic handling of any method/tier combination
-
-## Previously Completed: Modular Architecture
-
-### Files Created
-- `utils/methods/__init__.py`
-- `utils/methods/base.py`
-- `utils/methods/registry.py`
-- `utils/methods/dim_reduction/` (umap, tsne, pca)
-- `utils/methods/clustering/` (hdbscan, dbscan, kmeans, spectral)
-- `utils/export_params.py`
-
-## Completed Features (All)
+## Completed Features
 
 ### Core Functionality
 - ✅ CDE data loading from CSV
 - ✅ Domain mapping and filtering
 - ✅ Precomputed embedding loading
 - ✅ Modular dimension reduction (UMAP, t-SNE, PCA)
-- ✅ Modular clustering (HDBSCAN, DBSCAN, K-Means, Spectral)
+- ✅ Modular clustering (HDBSCAN, DBSCAN, K-Means, Spectral, BIRCH, OPTICS)
 - ✅ Clustering metrics (silhouette, coverage)
 - ✅ Interactive Dash visualization
 
-### Parameter UI
-- ✅ Single-select method dropdowns
-- ✅ Dynamic parameter population from schema
-- ✅ **Tiered parameter display** (Essential → Important → Advanced)
-- ✅ **Collapsible parameter sections**
-- ✅ Highlighted parameters (orange border for recommendations)
-
 ### Comparison Modes
-- ✅ Dimension reduction comparison toggle
-- ✅ Side-by-side dim reduction plot
-- ✅ **Clustering comparison toggle**
-- ✅ **Side-by-side clustering plot**
+- ✅ Dimension reduction comparison (1x2 layout)
+- ✅ Clustering comparison (2x1 layout)
+- ✅ **Full 2x2 comparison** (both DR and clustering)
 
-### Data Export
-- ✅ Lasso/box selection of data points
-- ✅ Export to JSON
-- ✅ Export to CSV
-- ✅ Copy to clipboard
+### Parameter UI
+- ✅ Tiered parameter display (Essential → Important → Advanced)
+- ✅ Collapsible parameter sections
+- ✅ n_components parameter for DR methods
+- ✅ cluster_selection_epsilon for HDBSCAN
+
+### Export Features
+- ✅ Lasso/box selection data export (JSON, CSV, clipboard)
 - ✅ YAML parameter export
+- ✅ PNG figure export
+- ✅ Analysis package (YAML + PNG archive)
 
 ### Infrastructure
+- ✅ **PyPI-style package** with editable install
+- ✅ Console script entry point (`clust-app`)
+- ✅ Method registry with decorator-based registration
+- ✅ PlotBuilder for modular plot generation
 - ✅ Claude checkpoint system
-- ✅ Method registry system
-- ✅ Protocol-based contracts
-- ✅ MkDocs documentation structure
 
 ## Pending / TODO
 
 ### High Priority
-- [ ] Push changes to remote (`git push origin parameter-update`)
-- [ ] Full integration test with real data
-- [ ] Merge to main branch
+- [ ] **Configuration system for models/datasets**
+  - Need to support multiple embedding models
+  - Need to support multiple text source datasets
+  - Decision: INI vs YAML (or hybrid)
 
 ### Medium Priority
+- [ ] **README.md for GitHub**
+  - Installation instructions
+  - Kaleido Chrome dependency warning
+  - Usage examples
+- [ ] Create PR to merge `parameter-update` → `main`
 - [ ] Add loading indicators during analysis
-- [ ] Add error messages to UI for invalid parameters
 - [ ] Parameter validation before running
-- [ ] Complete MkDocs documentation content
 
 ### Low Priority
 - [ ] Add unit tests for method registry
+- [ ] Complete MkDocs documentation content
 - [ ] Reduce unused imports
-- [ ] Add more type hints
-- [ ] Consider additional methods (OPTICS, BIRCH, Agglomerative)
 
 ## Known Issues
 
-None currently blocking.
+### Kaleido Chrome Dependency
+- PNG export via kaleido requires Chrome/Chromium
+- Need to document in README with installation instructions
+- Affects: `export_analysis_package()` function
+
+## Configuration Questions
+
+### INI vs YAML
+| Aspect | INI | YAML |
+|--------|-----|------|
+| Python stdlib | `configparser` built-in | Requires `pyyaml` |
+| Nesting | Limited (sections only) | Full hierarchical |
+| Lists | Awkward | Native support |
+| Current usage | In place | Used for param export |
+
+**Recommendation**: Hybrid approach
+- INI for simple configs (paths, flags)
+- YAML for complex nested configs (models, datasets, method parameters)
 
 ## Next Steps
 
-1. Push to remote and verify
-2. Test full application with real data
-3. Create PR to merge `parameter-update` → `main`
-4. Consider documentation updates
+1. Create README.md with installation/usage
+2. Document Kaleido Chrome requirement
+3. Design model/dataset configuration system
+4. Test full application
+5. Create PR for merge
 
 ---
 
-*Last context file update: 2026-01-18 20:50*
+*Last context file update: 2026-01-19 03:04*
